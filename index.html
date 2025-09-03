@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista da Vez</title>
     <meta name="description" content="Sistema de controle de fila de atendimento com registro de vendas para vendedores">
-    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -539,25 +538,10 @@
         </div>
     </div>
     <script type="module">
-        import {
-            initializeApp
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import {
-            getAuth,
-            createUserWithEmailAndPassword,
-            signInWithEmailAndPassword,
-            onAuthStateChanged,
-            signOut
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import {
-            getDatabase,
-            ref,
-            push,
-            set,
-            update,
-            onValue,
-            remove
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getDatabase, ref, push, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyDJBdK9I-jtg9ujTc9Xsxr-hnPfkId4wIU",
             authDomain: "pdv1-77632.firebaseapp.com",
@@ -568,6 +552,7 @@
             appId: "1:246033791117:web:7b70b511ea8d8c5ba1cac4",
             measurementId: "G-NTG13SG6VM"
         };
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth();
         const db = getDatabase();
@@ -619,6 +604,11 @@
             } else {
                 document.getElementById("authSection").style.display = "block";
                 document.getElementById("salesSection").style.display = "none";
+                currentEmployee = null;
+                vendorQueue = [];
+                allVendors = [];
+                renderVendorQueue();
+                renderCurrentService();
             }
         });
 
@@ -626,6 +616,16 @@
             currentMode = currentMode === 'queue' ? 'free' : 'queue';
             document.getElementById('modeToggleBtn').textContent = `Modo: ${currentMode === 'queue' ? 'Fila' : 'Livre'}`;
             localStorage.setItem('mode', currentMode);
+            if (currentMode === 'queue') {
+                currentEmployee = null;
+                vendorQueue = allVendors
+                    .filter(vendor => vendor.checkedIn)
+                    .sort((a, b) => {
+                        if (a.priority && !b.priority) return -1;
+                        if (!a.priority && b.priority) return 1;
+                        return a.order - b.order;
+                    });
+            }
             renderVendorQueue();
             renderCurrentService();
         };
@@ -674,6 +674,7 @@
         function renderVendorQueue() {
             const vendorList = document.getElementById('vendorQueue');
             vendorList.innerHTML = '';
+            vendorList.className = currentMode === 'free' ? 'totem-grid' : '';
             if (currentMode === 'queue') {
                 if (vendorQueue.length > 0) {
                     vendorQueue.forEach((vendor, index) => {
@@ -701,7 +702,6 @@
             } else {
                 const checkedInVendors = allVendors.filter(vendor => vendor.checkedIn);
                 if (checkedInVendors.length > 0) {
-                    vendorList.className = 'totem-grid';
                     checkedInVendors.forEach(vendor => {
                         const div = document.createElement('div');
                         div.className = 'totem-item';
@@ -713,7 +713,6 @@
                         vendorList.appendChild(div);
                     });
                 } else {
-                    vendorList.className = '';
                     vendorList.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon"><i class="fas fa-users"></i></div>
@@ -725,6 +724,10 @@
         }
 
         function selectVendorForSale(vendor) {
+            if (currentMode !== 'free') {
+                showToast("Selecione vendedores diretamente apenas no modo Livre.", "danger");
+                return;
+            }
             currentEmployee = { ...vendor, startTime: new Date() };
             const vendorSelect = document.getElementById('vendorAssigned');
             vendorSelect.innerHTML = `<option value="${vendor.id}">${vendor.name}</option>`;
@@ -749,12 +752,9 @@
                     vendorQueue = allVendors
                         .filter(vendor => vendor.checkedIn)
                         .sort((a, b) => {
-                            if (currentMode === 'queue') {
-                                if (a.priority && !b.priority) return -1;
-                                if (!a.priority && b.priority) return 1;
-                                return a.order - b.order;
-                            }
-                            return 0;
+                            if (a.priority && !b.priority) return -1;
+                            if (!a.priority && b.priority) return 1;
+                            return a.order - b.order;
                         });
                     vendorCheckInList.innerHTML = allVendors.map(vendor => `
                         <div class="queue-item">
@@ -776,8 +776,11 @@
                         </div>
                     `).join('');
                     renderVendorQueue();
-                    if (currentEmployee) {
+                    if (currentEmployee && vendorQueue.some(v => v.id === currentEmployee.id)) {
                         vendorSelect.innerHTML = `<option value="${currentEmployee.id}">${currentEmployee.name}</option>`;
+                    } else if (currentMode === 'queue' && vendorQueue.length > 0) {
+                        currentEmployee = null;
+                        vendorSelect.innerHTML = `<option value="">Nenhum vendedor disponível</option>`;
                     } else {
                         vendorSelect.innerHTML = `<option value="">${currentMode === 'queue' ? 'Nenhum vendedor disponível' : 'Selecione um vendedor'}</option>`;
                     }
@@ -790,8 +793,10 @@
                     `;
                     renderVendorQueue();
                     vendorSelect.innerHTML = `<option value="">${currentMode === 'queue' ? 'Nenhum vendedor disponível' : 'Selecione um vendedor'}</option>`;
+                    currentEmployee = null;
                 }
                 updateStats();
+                renderCurrentService();
             });
         }
 
@@ -802,6 +807,10 @@
                 checkedIn: checkInStatus
             }).then(() => {
                 showToast(checkInStatus ? "Check-in realizado!" : "Check-in desmarcado!", "success");
+                if (!checkInStatus && currentEmployee && currentEmployee.id === id) {
+                    currentEmployee = null;
+                    renderCurrentService();
+                }
                 loadVendors(user.uid);
             }).catch(err => showToast("Erro ao atualizar check-in: " + err.message, "danger"));
         };
@@ -812,6 +821,10 @@
             if (confirm("Tem certeza que deseja remover este vendedor?")) {
                 remove(ref(db, `vendors/${user.uid}/${id}`)).then(() => {
                     showToast("Vendedor removido!", "danger");
+                    if (currentEmployee && currentEmployee.id === id) {
+                        currentEmployee = null;
+                        renderCurrentService();
+                    }
                     loadVendors(user.uid);
                 }).catch(err => showToast("Erro ao remover vendedor: " + err.message, "danger"));
             }
@@ -828,6 +841,7 @@
                     });
                 });
                 showToast("Fila resetada para o padrão!", "success");
+                currentEmployee = null;
                 loadVendors(user.uid);
             }
         };
@@ -836,7 +850,8 @@
             const area = document.getElementById("currentServiceArea");
             const saleForm = document.getElementById("saleForm");
             const vendorSelect = document.getElementById("vendorAssigned");
-            if (!currentEmployee) {
+            if (!currentEmployee || (currentMode === 'queue' && !vendorQueue.some(v => v.id === currentEmployee.id))) {
+                currentEmployee = null;
                 area.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fas fa-user"></i></div>
@@ -873,6 +888,8 @@
             }
             if (vendorQueue.length === 0) {
                 showToast("Não há mais vendedores na fila de atendimento.", "danger");
+                currentEmployee = null;
+                renderCurrentService();
                 return;
             }
             currentEmployee = { ...vendorQueue[0], startTime: new Date() };
@@ -885,8 +902,8 @@
             const notSoldReason = document.getElementById("notSoldReason").value.trim();
             const saleDetails = document.getElementById("saleDetails").value.trim();
             const vendorId = document.getElementById("vendorAssigned").value;
-            if (!vendorId) {
-                showToast("Certifique-se de que há vendedores com check-in na fila.", "danger");
+            if (!vendorId || !currentEmployee) {
+                showToast("Certifique-se de que há um vendedor selecionado.", "danger");
                 return;
             }
             const user = auth.currentUser;
@@ -894,43 +911,45 @@
                 const salesRef = ref(db, `sales/${user.uid}`);
                 const data = {
                     vendorId,
-                    vendorName: currentEmployee?.name || "",
+                    vendorName: currentEmployee.name,
                     saleResult,
                     notSoldReason: saleResult === "not_sold" ? notSoldReason : "",
                     saleDetails,
                     timestamp: new Date().toISOString()
                 };
-                if (editId) {
-                    update(ref(db, `sales/${user.uid}/${editId}`), data).then(() => {
-                        showToast("Atendimento atualizado!", "success");
-                        editId = null;
-                        clearForm();
-                        updateVendorQueue(user.uid);
-                        loadSales(user.uid);
-                    });
-                } else {
-                    push(salesRef, data).then(() => {
-                        showToast("Atendimento registrado!", "success");
-                        clearForm();
-                        updateVendorQueue(user.uid);
-                        loadSales(user.uid);
-                    });
-                }
+                const saveSale = editId ? 
+                    update(ref(db, `sales/${user.uid}/${editId}`), data) :
+                    push(salesRef, data);
+                saveSale.then(() => {
+                    showToast(editId ? "Atendimento atualizado!" : "Atendimento registrado!", "success");
+                    editId = null;
+                    clearForm();
+                    updateVendorQueue(user.uid);
+                    loadSales(user.uid);
+                    if (currentMode === 'queue') {
+                        nextEmployee(); // Automatically select next vendor in queue mode
+                    } else {
+                        currentEmployee = null; // Clear current employee in free mode
+                        renderCurrentService();
+                    }
+                }).catch(err => showToast("Erro ao registrar atendimento: " + err.message, "danger"));
             }
         };
 
         function updateVendorQueue(uid) {
-            if (currentMode === 'queue' && vendorQueue.length > 0) {
+            if (currentMode === 'queue' && vendorQueue.length > 0 && currentEmployee) {
                 const vendorsRef = ref(db, `vendors/${uid}`);
-                const movedVendor = vendorQueue.shift();
-                movedVendor.order = allVendors.length;
-                vendorQueue.push(movedVendor);
-                vendorQueue.forEach((vendor, index) => {
-                    vendor.order = allVendors.findIndex(v => v.id === vendor.id);
-                    update(ref(db, `vendors/${user.uid}/${vendor.id}`), {
-                        order: vendor.order
+                const movedVendor = vendorQueue.find(v => v.id === currentEmployee.id);
+                if (movedVendor) {
+                    vendorQueue = vendorQueue.filter(v => v.id !== currentEmployee.id);
+                    movedVendor.order = Math.max(...allVendors.map(v => v.order)) + 1;
+                    vendorQueue.push(movedVendor);
+                    vendorQueue.forEach((vendor, index) => {
+                        update(ref(db, `vendors/${uid}/${vendor.id}`), {
+                            order: index
+                        });
                     });
-                });
+                }
                 loadVendors(uid);
             } else {
                 loadVendors(uid);
