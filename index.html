@@ -1,1167 +1,775 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista da Vez</title>
-    <meta name="description" content="Sistema de controle de fila de atendimento com registro de vendas para vendedores">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(180deg, hsl(240, 10%, 98%), hsl(240, 10%, 96%));
-            min-height: 100vh;
-            color: hsl(222.2, 84%, 4.9%);
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: hsl(222.2, 84%, 4.9%);
-            margin-bottom: 8px;
-        }
-        .header p {
-            font-size: 1.125rem;
-            color: hsl(215.4, 16.3%, 46.9%);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 20px -4px hsl(210, 85%, 40%, 0.1);
-            border: 1px solid hsl(214.3, 31.8%, 91.4%);
-        }
-        .card-header {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .stat-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .stat-icon {
-            width: 20px;
-            height: 20px;
-            color: hsl(210, 85%, 40%);
-        }
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        .stat-label {
-            font-size: 0.875rem;
-            color: hsl(215.4, 16.3%, 46.9%);
-        }
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-        @media (max-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .current-service {
-            background: linear-gradient(135deg, hsl(210, 85%, 40%), hsl(210, 85%, 60%));
-            color: white;
-            text-align: center;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-        }
-        .current-service h3 {
-            font-size: 1.5rem;
-            margin-bottom: 4px;
-        }
-        .current-service p {
-            opacity: 0.8;
-            margin-bottom: 8px;
-        }
-        .service-time {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            opacity: 0.6;
-            font-size: 0.875rem;
-        }
-        .button-group {
-            display: flex;
-            gap: 12px;
-        }
-        .btn {
-            flex: 1;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn:hover {
-            transform: scale(1.05);
-        }
-        .btn-success {
-            background: linear-gradient(135deg, hsl(142, 76%, 36%), hsl(142, 76%, 56%));
-            color: white;
-        }
-        .btn-success:hover {
-            box-shadow: 0 10px 30px -10px hsl(142, 76%, 36%, 0.2);
-        }
-        .btn-danger {
-            background: linear-gradient(135deg, hsl(0, 84.2%, 60.2%), hsl(0, 84.2%, 70.2%));
-            color: white;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, hsl(210, 85%, 40%), hsl(210, 85%, 60%));
-            color: white;
-            width: 100%;
-        }
-        .btn-outline {
-            background: white;
-            color: hsl(222.2, 84%, 4.9%);
-            border: 1px solid hsl(214.3, 31.8%, 91.4%);
-        }
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 0.875rem;
-            border-radius: 6px;
-        }
-        .btn-delete {
-            background: linear-gradient(135deg, hsl(0, 72%, 51%), hsl(0, 72%, 71%));
-            color: white;
-        }
-        .employee-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .add-employee-form {
-            background: hsl(210, 40%, 96.1%);
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-label {
-            display: block;
-            margin-bottom: 4px;
-            font-weight: 500;
-            font-size: 0.875rem;
-        }
-        .form-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid hsl(214.3, 31.8%, 91.4%);
-            border-radius: 6px;
-            font-size: 0.875rem;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: hsl(210, 85%, 40%);
-            box-shadow: 0 0 0 2px hsl(210, 85%, 40%, 0.2);
-        }
-        .form-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: hsl(215.4, 16.3%, 46.9%);
-        }
-        .empty-icon {
-            width: 48px;
-            height: 48px;
-            margin: 0 auto 12px;
-            opacity: 0.5;
-        }
-        .queue-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: hsl(210, 40%, 96.1%);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .queue-position {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: white;
-            border: 1px solid hsl(214.3, 31.8%, 91.4%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            font-size: 0.875rem;
-        }
-        .employee-info h4 {
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-        .employee-info p {
-            font-size: 0.875rem;
-            color: hsl(215.4, 16.3%, 46.9%);
-        }
-        .badge {
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .badge-success {
-            background: hsl(142, 76%, 36%);
-            color: white;
-        }
-        .badge-danger {
-            background: hsl(0, 84.2%, 60.2%);
-            color: white;
-        }
-        .history-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: hsl(210, 40%, 96.1%);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 16px 20px;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            max-width: 350px;
-        }
-        .toast.show {
-            transform: translateX(0);
-        }
-        .toast-success {
-            border-left: 4px solid hsl(142, 76%, 36%);
-        }
-        .toast-danger {
-            border-left: 4px solid hsl(0, 84.2%, 60.2%);
-        }
-        .success-text { color: hsl(142, 76%, 36%); }
-        .stat-success .stat-value { color: hsl(142, 76%, 36%); }
-        .icon {
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-        }
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: transparent;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: hsl(222.2, 84%, 4.9%);
-        }
-        [data-theme="dark"] {
-            background: linear-gradient(180deg, hsl(240, 10%, 20%), hsl(240, 10%, 15%));
-            color: hsl(210, 40%, 90%);
-        }
-        [data-theme="dark"] .card {
-            background: hsl(240, 10%, 25%);
-            border-color: hsl(240, 10%, 30%);
-        }
-        [data-theme="dark"] .form-input {
-            background: hsl(240, 10%, 30%);
-            color: hsl(210, 40%, 90%);
-            border-color: hsl(240, 10%, 40%);
-        }
-        [data-theme="dark"] .queue-item,
-        [data-theme="dark"] .history-item,
-        [data-theme="dark"] .add-employee-form {
-            background: hsl(240, 10%, 30%);
-        }
-        [data-theme="dark"] .btn-outline {
-            background: hsl(240, 10%, 25%);
-            color: hsl(210, 40%, 90%);
-            border-color: hsl(240, 10%, 40%);
-        }
-        .totem-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-        .totem-item {
-            background: hsl(210, 40%, 96.1%);
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid hsl(214.3, 31.8%, 91.4%);
-        }
-        .totem-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 20px -4px hsl(210, 85%, 40%, 0.2);
-        }
-        .totem-item h4 {
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-        .totem-item p {
-            font-size: 0.875rem;
-            color: hsl(215.4, 16.3%, 46.9%);
-        }
-        [data-theme="dark"] .totem-item {
-            background: hsl(240, 10%, 30%);
-            border-color: hsl(240, 10%, 40%);
-        }
-        @media (max-width: 768px) {
-            body {
-                margin: 10px;
-            }
-            .container {
-                padding: 0 10px;
-            }
-            .form-input,
-            select {
-                font-size: 14px;
-                padding: 10px;
-            }
-            .btn {
-                font-size: 14px;
-                padding: 10px 15px;
-                width: 100%;
-                margin-bottom: 10px;
-            }
-            .form-input {
-                max-width: 100%;
-                margin-bottom: 10px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Separação - Batavo</title>
+  <style>
+    :root {
+      --blue: #1a73e8;
+      --green: #1e8e3e;
+      --green-light: #e6f4ea;
+      --red: #d93025;
+      --red-light: #fce8e6;
+      --amber: #f29900;
+      --amber-light: #fef7e0;
+      --gray-50: #f8f9fa;
+      --gray-100: #f1f3f4;
+      --gray-200: #e8eaed;
+      --gray-400: #9aa0a6;
+      --gray-600: #5f6368;
+      --gray-900: #202124;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.10);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4ff;
+      color: var(--gray-900);
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--blue);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .topbar img { height: 36px; width: 36px; border-radius: 8px; object-fit: cover; }
+    .topbar-info { flex: 1; }
+    .topbar-info h1 { font-size: 17px; font-weight: 700; }
+    .topbar-info p { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+    .topbar-btn {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .topbar-btn:active { background: rgba(255,255,255,0.3); }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      background: white;
+    }
+    #loginScreen img { height: 80px; border-radius: 14px; margin-bottom: 20px; }
+    #loginScreen h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    #loginScreen p { color: var(--gray-600); margin-bottom: 28px; font-size: 14px; }
+    .login-box { width: 100%; max-width: 360px; }
+    .login-box input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      margin-bottom: 10px;
+      background: var(--gray-50);
+      color: var(--gray-900);
+    }
+    .login-box input:focus { outline: none; border-color: var(--blue); background: white; }
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .btn-login:active { opacity: 0.85; }
+    .login-error { color: var(--red); font-size: 13px; text-align: center; margin-top: 8px; display: none; }
+
+    /* ── MAIN APP ── */
+    #app { display: none; }
+
+    /* ── DATE BAR ── */
+    .date-bar {
+      background: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .date-bar input[type=date] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      background: var(--gray-50);
+      color: var(--gray-900);
+    }
+    .date-bar input:focus { outline: none; border-color: var(--blue); }
+    .btn-refresh {
+      padding: 10px 14px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-refresh:active { opacity: 0.85; }
+
+    /* ── SUMMARY BAR ── */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--gray-200);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .summary-item {
+      background: white;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .summary-item .val { font-size: 20px; font-weight: 800; color: var(--blue); }
+    .summary-item .lbl { font-size: 11px; color: var(--gray-600); margin-top: 1px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 2px solid var(--gray-200);
+      position: sticky;
+      top: 65px;
+      z-index: 90;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    /* ── CONTENT ── */
+    .content { padding: 12px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── PEDIDO CARD ── */
+    .pedido-card {
+      background: white;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border-left: 5px solid var(--gray-200);
+      transition: border-color 0.2s;
+    }
+    .pedido-card.status-pendente { border-left-color: var(--amber); }
+    .pedido-card.status-separando { border-left-color: var(--blue); }
+    .pedido-card.status-pronto { border-left-color: var(--green); }
+    .pedido-card.status-entregue { border-left-color: var(--gray-400); opacity: 0.7; }
+
+    .pedido-header {
+      padding: 14px 14px 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pedido-num {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pedido-info { flex: 1; min-width: 0; }
+    .pedido-cliente { font-size: 16px; font-weight: 700; }
+    .pedido-meta { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+    .pedido-valor { font-size: 17px; font-weight: 800; color: var(--green); white-space: nowrap; }
+
+    .pedido-status-row {
+      padding: 0 14px 12px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .status-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 2px solid var(--gray-200);
+      background: white;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .status-btn.pendente.active   { background: var(--amber-light); border-color: var(--amber); color: #7a5200; }
+    .status-btn.separando.active  { background: var(--blue-light, #e8f0fe); border-color: var(--blue); color: var(--blue); }
+    .status-btn.pronto.active     { background: var(--green-light); border-color: var(--green); color: var(--green); }
+    .status-btn.entregue.active   { background: var(--gray-100); border-color: var(--gray-400); color: var(--gray-600); }
+
+    /* ── ITENS DO PEDIDO ── */
+    .pedido-itens {
+      display: none;
+      border-top: 1px solid var(--gray-100);
+    }
+    .pedido-itens.open { display: block; }
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--gray-50);
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-check {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 2px solid var(--gray-200);
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .item-check.checked { background: var(--green); border-color: var(--green); color: white; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-nome { font-size: 14px; font-weight: 600; }
+    .item-nome.checked { text-decoration: line-through; color: var(--gray-400); }
+    .item-qtd { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+    .item-preco { font-size: 14px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+
+    .pedido-obs {
+      padding: 10px 14px;
+      background: var(--amber-light);
+      font-size: 13px;
+      color: #7a5200;
+      border-top: 1px solid var(--amber);
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    /* ── LISTA CONSOLIDADA ── */
+    .lista-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lista-check {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      border: 2px solid var(--gray-200);
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .lista-check.checked { background: var(--green); border-color: var(--green); color: white; }
+    .lista-info { flex: 1; }
+    .lista-nome { font-size: 15px; font-weight: 700; }
+    .lista-nome.checked { text-decoration: line-through; color: var(--gray-400); }
+    .lista-det { font-size: 12px; color: var(--gray-600); margin-top: 3px; }
+    .lista-qtd {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--blue);
+      white-space: nowrap;
+    }
+
+    /* ── EMPTY ── */
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--gray-400);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty p { font-size: 15px; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--gray-900);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.25s;
+      z-index: 500;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── LOADING ── */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-600);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .blue-light { background: #e8f0fe; }
+  </style>
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle" title="Alternar Modo Claro/Escuro">
-        <i class="fas fa-moon"></i>
-    </button>
-    <div class="container">
-        <div class="header">
-            <h1>Lista da Vez</h1>
-            <p>Controle de fila e vendas dos vendedores</p>
-        </div>
-        <div class="stats-grid">
-            <div class="card">
-                <div class="stat-card">
-                    <span class="stat-icon"><i class="fas fa-users"></i></span>
-                    <div>
-                        <div class="stat-label">Na Fila</div>
-                        <div class="stat-value" id="queueCount">0</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stat-card">
-                    <span class="stat-icon"><i class="fas fa-clipboard-check"></i></span>
-                    <div>
-                        <div class="stat-label">Atendimentos</div>
-                        <div class="stat-value" id="totalServices">0</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card stat-success">
-                <div class="stat-card">
-                    <span class="stat-icon"><i class="fas fa-chart-line"></i></span>
-                    <div>
-                        <div class="stat-label">Vendas</div>
-                        <div class="stat-value" id="completedSales">0</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stat-card">
-                    <span class="stat-icon"><i class="fas fa-bullseye"></i></span>
-                    <div>
-                        <div class="stat-label">Taxa de Sucesso</div>
-                        <div class="stat-value" id="successRate">0%</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="authSection" class="card">
-            <div class="card-header"><i class="fas fa-user"></i> Login / Cadastro</div>
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" class="form-input" id="email" placeholder="Digite seu email">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Senha</label>
-                <input type="password" class="form-input" id="password" placeholder="Digite sua senha">
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary btn-small" id="registerBtn"><i class="fas fa-user-plus"></i> Cadastrar</button>
-                <button class="btn btn-primary btn-small" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Entrar</button>
-            </div>
-        </div>
-        <div id="salesSection" style="display: none;">
-            <div class="main-grid">
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-clock"></i> Atendimento Atual</div>
-                    <div id="currentServiceArea">
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-user"></i></div>
-                            <p>Nenhum vendedor em atendimento</p>
-                            <button class="btn btn-primary" id="nextBtn">Iniciar Próximo Atendimento</button>
-                        </div>
-                    </div>
-                    <div class="card" id="saleForm" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label">Vendedor</label>
-                            <select class="form-input" id="vendorAssigned" disabled>
-                                <option value="">Aguardando vendedor...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Resultado do Atendimento</label>
-                            <select class="form-input" id="saleResult">
-                                <option value="sold">Venda Realizada</option>
-                                <option value="not_sold">Não Vendido</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="notSoldReasonGroup" style="display: none;">
-                            <label class="form-label">Motivo da Não Venda</label>
-                            <input type="text" class="form-input" id="notSoldReason" placeholder="Motivo da Não Venda">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Detalhes da Venda (opcional)</label>
-                            <input type="text" class="form-input" id="saleDetails" placeholder="Detalhes da Venda">
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-success" id="submitSale"><i class="fas fa-save"></i> Registrar Atendimento</button>
-                            <button class="btn btn-danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Sair</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header" style="justify-content: space-between;">
-                        <span><i class="fas fa-users"></i> Fila de Vendedores</span>
-                        <div>
-                            <button class="btn btn-outline btn-small" id="modeToggleBtn">Modo: Fila</button>
-                            <button class="btn btn-outline btn-small" id="resetQueueBtn">Reiniciar Fila</button>
-                        </div>
-                    </div>
-                    <div class="add-employee-form" id="addVendorForm" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label">Nome do Vendedor</label>
-                            <input type="text" class="form-input" id="vendorName" placeholder="Digite o nome do vendedor">
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-primary btn-small" id="addVendorBtn">Adicionar</button>
-                            <button class="btn btn-outline btn-small" id="cancelAddVendorBtn">Cancelar</button>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <span></span>
-                        <button class="btn btn-outline btn-small" id="showAddVendorFormBtn">+ Adicionar Vendedor</button>
-                    </div>
-                    <div id="vendorQueue"></div>
-                    <div id="vendorCheckInList"></div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header"><i class="fas fa-file-export"></i> Exportar e Enviar Relatórios</div>
-                <div class="form-actions">
-                    <button class="btn btn-success" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Baixar PDF</button>
-                    <button class="btn btn-success" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Baixar Excel</button>
-                </div>
-                <div class="form-group" style="margin-top: 16px;">
-                    <label class="form-label">Enviar Relatório por WhatsApp</label>
-                    <input type="text" class="form-input" id="phoneNumber" placeholder="Número de Telefone (Ex: 5511987654321)">
-                    <small>Para WhatsApp, use o formato completo com código do país (ex: 55 para Brasil).</small>
-                </div>
-                <button class="btn btn-primary" id="sendReportBtn"><i class="fas fa-paper-plane"></i> Enviar Relatório</button>
-            </div>
-            <div class="card">
-                <div class="card-header"><i class="fas fa-history"></i> Histórico de Atendimentos</div>
-                <div id="salesList">
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
-                        <p>Nenhum atendimento registrado ainda</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="toast" class="toast">
-            <div id="toastContent"></div>
-        </div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <img src="https://i.postimg.cc/7Pgm8YqM/Whats-App-Image-2026-06-14-at-10-32-57.jpg" alt="Batavo">
+  <h2>Batavo — Separação</h2>
+  <p>Acesso para funcionários</p>
+  <div class="login-box">
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" placeholder="Senha" autocomplete="current-password">
+    <button class="btn-login" id="loginBtn">Entrar</button>
+    <div class="login-error" id="loginError">Email ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <img src="https://i.postimg.cc/7Pgm8YqM/Whats-App-Image-2026-06-14-at-10-32-57.jpg" alt="Batavo">
+    <div class="topbar-info">
+      <h1>Separação de Pedidos</h1>
+      <p id="topbarDate">Hoje</p>
     </div>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getDatabase, ref, push, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDJBdK9I-jtg9ujTc9Xsxr-hnPfkId4wIU",
-            authDomain: "pdv1-77632.firebaseapp.com",
-            databaseURL: "https://pdv1-77632-default-rtdb.firebaseio.com",
-            projectId: "pdv1-77632",
-            storageBucket: "pdv1-77632.firebasestorage.app",
-            messagingSenderId: "246033791117",
-            appId: "1:246033791117:web:7b70b511ea8d8c5ba1cac4",
-            measurementId: "G-NTG13SG6VM"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth();
-        const db = getDatabase();
-        let currentSalesData = [];
-        let vendorQueue = [];
-        let allVendors = [];
-        let editId = null;
-        let currentEmployee = null;
-        let currentMode = 'queue';
+    <button class="topbar-btn" id="logoutBtn">Sair</button>
+  </div>
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const content = document.getElementById('toastContent');
-            content.textContent = message;
-            toast.className = `toast ${type === 'success' ? 'toast-success' : 'toast-danger'}`;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+  <!-- Data + Atualizar -->
+  <div class="date-bar">
+    <input type="date" id="filterDate">
+    <button class="btn-refresh" onclick="loadSales()">🔄 Atualizar</button>
+  </div>
+
+  <!-- Resumo -->
+  <div class="summary-bar">
+    <div class="summary-item">
+      <div class="val" id="sumPedidos">0</div>
+      <div class="lbl">Pedidos</div>
+    </div>
+    <div class="summary-item">
+      <div class="val" id="sumItens">0</div>
+      <div class="lbl">Itens</div>
+    </div>
+    <div class="summary-item">
+      <div class="val" id="sumProntos">0</div>
+      <div class="lbl">✅ Prontos</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('pedidos')">📋 Pedidos</div>
+    <div class="tab" onclick="showTab('lista')">📦 Lista Geral</div>
+  </div>
+
+  <div class="content">
+    <!-- TAB: PEDIDOS -->
+    <div class="tab-panel active" id="tab-pedidos">
+      <div id="pedidosList">
+        <div class="loading"><div class="spinner"></div><p>Carregando...</p></div>
+      </div>
+    </div>
+
+    <!-- TAB: LISTA GERAL -->
+    <div class="tab-panel" id="tab-lista">
+      <div id="listaGeral">
+        <div class="loading"><div class="spinner"></div><p>Carregando...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJBdK9I-jtg9ujTc9Xsxr-hnPfkId4wIU",
+    authDomain: "pdv1-77632.firebaseapp.com",
+    databaseURL: "https://pdv1-77632-default-rtdb.firebaseio.com",
+    projectId: "pdv1-77632",
+    storageBucket: "pdv1-77632.firebasestorage.app",
+    messagingSenderId: "246033791117",
+    appId: "1:246033791117:web:7b70b511ea8d8c5ba1cac4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth();
+  const db = getDatabase();
+
+  let allSales = [];
+  let checkedItems = {}; // { saleId: { itemIdx: true } }
+  let checkedLista = {}; // { nomeProduto: true }
+  let pedidoStatuses = {}; // { saleId: 'pendente'|'separando'|'pronto'|'entregue' }
+  let expandedCards = {}; // { saleId: true }
+  let currentUid = null;
+  let activeTab = 'pedidos';
+
+  // ── UTILS ──
+  function toast(msg, dur = 2500) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), dur);
+  }
+
+  function fmt(n) { return 'R$ ' + Number(n).toFixed(2).replace('.', ','); }
+
+  function fmtQtd(item) {
+    if (!item) return '';
+    return item.unidade === 'kilo'
+      ? (item.quantidade * 1000).toFixed(0) + 'g'
+      : item.quantidade + ' un';
+  }
+
+  // ── AUTH ──
+  document.getElementById('loginBtn').onclick = () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    document.getElementById('loginError').style.display = 'none';
+    signInWithEmailAndPassword(auth, email, pass)
+      .catch(() => {
+        document.getElementById('loginError').style.display = 'block';
+      });
+  };
+
+  document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      currentUid = user.uid;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('filterDate').value = today;
+      document.getElementById('topbarDate').textContent = formatDateDisplay(today);
+      loadSales();
+    } else {
+      currentUid = null;
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
+
+  function formatDateDisplay(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  }
+
+  // ── LOAD SALES ──
+  window.loadSales = () => {
+    if (!currentUid) return;
+    const date = document.getElementById('filterDate').value;
+    document.getElementById('topbarDate').textContent = formatDateDisplay(date);
+    document.getElementById('pedidosList').innerHTML = '<div class="loading"><div class="spinner"></div><p>Carregando...</p></div>';
+    document.getElementById('listaGeral').innerHTML = '<div class="loading"><div class="spinner"></div><p>Carregando...</p></div>';
+
+    onValue(ref(db, `vendas/${currentUid}`), snap => {
+      const all = snap.exists() ? Object.entries(snap.val()).map(([k, v]) => ({ id: k, ...v })) : [];
+      const start = new Date(date + 'T00:00:00');
+      const end = new Date(date + 'T23:59:59');
+      allSales = all.filter(s => {
+        const d = new Date(s.dataVenda);
+        return d >= start && d <= end && s.items && s.items.length > 0;
+      }).sort((a, b) => new Date(a.dataVenda) - new Date(b.dataVenda));
+
+      // Load statuses from Firebase
+      onValue(ref(db, `separacao/${currentUid}/${date}`), snapStatus => {
+        pedidoStatuses = snapStatus.exists() ? snapStatus.val() : {};
+        renderAll();
+      }, { onlyOnce: true });
+    }, { onlyOnce: true });
+  };
+
+  function renderAll() {
+    renderSummary();
+    renderPedidos();
+    renderLista();
+  }
+
+  // ── SUMMARY ──
+  function renderSummary() {
+    const totalItens = allSales.reduce((s, v) => s + (v.items?.length || 0), 0);
+    const prontos = allSales.filter(s => pedidoStatuses[s.id] === 'pronto' || pedidoStatuses[s.id] === 'entregue').length;
+    document.getElementById('sumPedidos').textContent = allSales.length;
+    document.getElementById('sumItens').textContent = totalItens;
+    document.getElementById('sumProntos').textContent = prontos;
+  }
+
+  // ── TAB NAVIGATION ──
+  window.showTab = (tab) => {
+    activeTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['pedidos','lista'][i] === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+  };
+
+  // ── RENDER PEDIDOS ──
+  function renderPedidos() {
+    const div = document.getElementById('pedidosList');
+    if (!allSales.length) {
+      div.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>Nenhum pedido com itens para este dia.</p></div>`;
+      return;
+    }
+    div.innerHTML = allSales.map((sale, idx) => {
+      const status = pedidoStatuses[sale.id] || 'pendente';
+      const isOpen = expandedCards[sale.id] || false;
+      const hora = new Date(sale.dataVenda).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const payIcon = { Pix:'💠', Dinheiro:'💵', Credito:'💳', Debito:'💳', Outro:'🔹' }[sale.tipoPagamento] || '🔹';
+      const checked = checkedItems[sale.id] || {};
+      const totalChecked = Object.values(checked).filter(Boolean).length;
+      const totalItens = sale.items.length;
+
+      return `
+        <div class="pedido-card status-${status}" id="card-${sale.id}">
+          <div class="pedido-header" onclick="toggleCard('${sale.id}')">
+            <div class="pedido-num">${idx + 1}</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">${sale.clienteNome || 'Sem Cliente'}</div>
+              <div class="pedido-meta">
+                🕐 ${hora} &nbsp;|&nbsp; ${payIcon} ${sale.tipoPagamento}
+                &nbsp;|&nbsp; ${totalChecked}/${totalItens} itens
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="pedido-valor">${fmt(sale.valorTotal)}</div>
+              <div style="font-size:20px;color:var(--gray-400);margin-top:2px;">${isOpen ? '▲' : '▼'}</div>
+            </div>
+          </div>
+
+          <div class="pedido-status-row">
+            ${['pendente','separando','pronto','entregue'].map(s => `
+              <button class="status-btn ${s} ${status === s ? 'active' : ''}"
+                onclick="setStatus('${sale.id}', '${s}')">
+                ${{ pendente:'⏳ Pendente', separando:'🔄 Separando', pronto:'✅ Pronto', entregue:'🚚 Entregue' }[s]}
+              </button>
+            `).join('')}
+          </div>
+
+          <div class="pedido-itens ${isOpen ? 'open' : ''}" id="itens-${sale.id}">
+            ${sale.items.map((item, iIdx) => {
+              const isChecked = checked[iIdx] || false;
+              return `
+                <div class="item-row">
+                  <div class="item-check ${isChecked ? 'checked' : ''}"
+                    onclick="toggleItemCheck('${sale.id}', ${iIdx})">
+                    ${isChecked ? '✓' : ''}
+                  </div>
+                  <div class="item-info">
+                    <div class="item-nome ${isChecked ? 'checked' : ''}">${item.nome}</div>
+                    <div class="item-qtd">${fmtQtd(item)}</div>
+                  </div>
+                  <div class="item-preco">${fmt(item.preco)}</div>
+                </div>`;
+            }).join('')}
+            ${sale.observacoes && sale.observacoes !== 'Venda PDV' ? `
+              <div class="pedido-obs">💬 <span>${sale.observacoes}</span></div>
+            ` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── TOGGLE CARD ──
+  window.toggleCard = (id) => {
+    expandedCards[id] = !expandedCards[id];
+    const itens = document.getElementById(`itens-${id}`);
+    const header = itens?.previousElementSibling?.previousElementSibling;
+    if (itens) itens.classList.toggle('open', expandedCards[id]);
+    // update arrow
+    const arrow = document.querySelector(`#card-${id} .pedido-header > div:last-child > div:last-child`);
+    if (arrow) arrow.textContent = expandedCards[id] ? '▲' : '▼';
+  };
+
+  // ── STATUS ──
+  window.setStatus = (saleId, status) => {
+    pedidoStatuses[saleId] = status;
+    const date = document.getElementById('filterDate').value;
+    const updates = {};
+    updates[`separacao/${currentUid}/${date}/${saleId}`] = status;
+    update(ref(db), updates).then(() => {
+      const labels = { pendente:'⏳ Pendente', separando:'🔄 Separando', pronto:'✅ Pronto!', entregue:'🚚 Entregue!' };
+      toast(labels[status]);
+    });
+    // Update card border and buttons
+    const card = document.getElementById(`card-${saleId}`);
+    if (card) {
+      card.className = `pedido-card status-${status}`;
+      card.querySelectorAll('.status-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.classList.contains(status));
+      });
+    }
+    renderSummary();
+  };
+
+  // ── CHECK ITEM ──
+  window.toggleItemCheck = (saleId, itemIdx) => {
+    if (!checkedItems[saleId]) checkedItems[saleId] = {};
+    checkedItems[saleId][itemIdx] = !checkedItems[saleId][itemIdx];
+    const isChecked = checkedItems[saleId][itemIdx];
+    // Update visuals inline
+    const rows = document.querySelectorAll(`#itens-${saleId} .item-row`);
+    const row = rows[itemIdx];
+    if (row) {
+      const chk = row.querySelector('.item-check');
+      const nome = row.querySelector('.item-nome');
+      if (chk) { chk.classList.toggle('checked', isChecked); chk.textContent = isChecked ? '✓' : ''; }
+      if (nome) nome.classList.toggle('checked', isChecked);
+    }
+    // Update counter in header
+    const sale = allSales.find(s => s.id === saleId);
+    if (sale) {
+      const totalChecked = Object.values(checkedItems[saleId]).filter(Boolean).length;
+      const meta = document.querySelector(`#card-${saleId} .pedido-meta`);
+      if (meta) {
+        const hora = new Date(sale.dataVenda).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const payIcon = { Pix:'💠', Dinheiro:'💵', Credito:'💳', Debito:'💳', Outro:'🔹' }[sale.tipoPagamento] || '🔹';
+        meta.innerHTML = `🕐 ${hora} &nbsp;|&nbsp; ${payIcon} ${sale.tipoPagamento} &nbsp;|&nbsp; ${totalChecked}/${sale.items.length} itens`;
+      }
+    }
+    // Auto-mark as separando when first item checked
+    const sale2 = allSales.find(s => s.id === saleId);
+    if (isChecked && sale2 && (!pedidoStatuses[saleId] || pedidoStatuses[saleId] === 'pendente')) {
+      setStatus(saleId, 'separando');
+    }
+  };
+
+  // ── RENDER LISTA GERAL ──
+  function renderLista() {
+    const div = document.getElementById('listaGeral');
+    if (!allSales.length) {
+      div.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>Nenhum item para este dia.</p></div>`;
+      return;
+    }
+    // Consolida todos os itens
+    const consolidated = {};
+    allSales.forEach(sale => {
+      (sale.items || []).forEach(item => {
+        const key = item.nome.trim().toLowerCase();
+        if (!consolidated[key]) {
+          consolidated[key] = {
+            nome: item.nome,
+            unidade: item.unidade,
+            totalQtd: 0,
+            totalQtdRaw: 0,
+            pedidos: []
+          };
         }
-
-        document.getElementById("registerBtn").onclick = () => {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            createUserWithEmailAndPassword(auth, email, password)
-                .then(() => showToast("Usuário registrado!", "success"))
-                .catch(err => showToast(err.message, "danger"));
-        };
-
-        document.getElementById("loginBtn").onclick = () => {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            signInWithEmailAndPassword(auth, email, password)
-                .then(() => showToast("Login realizado!", "success"))
-                .catch(err => showToast(err.message, "danger"));
-        };
-
-        document.getElementById("logoutBtn").onclick = () => {
-            signOut(auth);
-            showToast("Logout realizado!", "success");
-        };
-
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                document.getElementById("authSection").style.display = "none";
-                document.getElementById("salesSection").style.display = "block";
-                loadVendors(user.uid);
-                loadSales(user.uid);
-            } else {
-                document.getElementById("authSection").style.display = "block";
-                document.getElementById("salesSection").style.display = "none";
-                currentEmployee = null;
-                vendorQueue = [];
-                allVendors = [];
-                renderVendorQueue();
-                renderCurrentService();
-            }
+        consolidated[key].totalQtdRaw += item.quantidade;
+        consolidated[key].pedidos.push({
+          cliente: sale.clienteNome || 'Sem Cliente',
+          qtd: fmtQtd(item),
+          preco: item.preco
         });
+      });
+    });
 
-        document.getElementById("modeToggleBtn").onclick = () => {
-            currentMode = currentMode === 'queue' ? 'free' : 'queue';
-            document.getElementById('modeToggleBtn').textContent = `Modo: ${currentMode === 'queue' ? 'Fila' : 'Livre'}`;
-            localStorage.setItem('mode', currentMode);
-            if (currentMode === 'queue') {
-                currentEmployee = null;
-                vendorQueue = allVendors
-                    .filter(vendor => vendor.checkedIn)
-                    .sort((a, b) => {
-                        if (a.priority && !b.priority) return -1;
-                        if (!a.priority && b.priority) return 1;
-                        return a.order - b.order;
-                    });
-            }
-            renderVendorQueue();
-            renderCurrentService();
-        };
+    const entries = Object.values(consolidated).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
-        const savedMode = localStorage.getItem('mode') || 'queue';
-        currentMode = savedMode;
-        document.getElementById('modeToggleBtn').textContent = `Modo: ${currentMode === 'queue' ? 'Fila' : 'Livre'}`;
+    div.innerHTML = entries.map(p => {
+      const isChecked = checkedLista[p.nome] || false;
+      const qtdDisplay = p.unidade === 'kilo'
+        ? (p.totalQtdRaw * 1000).toFixed(0) + 'g'
+        : p.totalQtdRaw % 1 === 0 ? p.totalQtdRaw + ' un' : p.totalQtdRaw.toFixed(3) + ' un';
+      const pedidosText = p.pedidos.map(pd => `${pd.cliente} (${pd.qtd})`).join(' · ');
 
-        document.getElementById("addVendorBtn").onclick = () => {
-            const vendorName = document.getElementById("vendorName").value.trim();
-            if (!vendorName) {
-                showToast("Por favor, insira o nome do vendedor.", "danger");
-                return;
-            }
-            const user = auth.currentUser;
-            if (user) {
-                const vendorsRef = ref(db, `vendors/${user.uid}`);
-                const newVendorRef = push(vendorsRef);
-                const isJosy = vendorName.toLowerCase() === "josy";
-                set(newVendorRef, {
-                    name: vendorName,
-                    order: allVendors.length,
-                    checkedIn: false,
-                    priority: isJosy
-                }).then(() => {
-                    document.getElementById("vendorName").value = "";
-                    showToast(`${vendorName} adicionado à fila!`, "success");
-                    cancelAddVendor();
-                    loadVendors(user.uid);
-                }).catch(err => showToast("Erro ao adicionar vendedor: " + err.message, "danger"));
-            }
-        };
+      return `
+        <div class="lista-card">
+          <div class="lista-check ${isChecked ? 'checked' : ''}"
+            onclick="toggleListaCheck('${p.nome}')">
+            ${isChecked ? '✓' : ''}
+          </div>
+          <div class="lista-info">
+            <div class="lista-nome ${isChecked ? 'checked' : ''}">${p.nome}</div>
+            <div class="lista-det">${pedidosText}</div>
+          </div>
+          <div class="lista-qtd">${qtdDisplay}</div>
+        </div>`;
+    }).join('');
+  }
 
-        document.getElementById("showAddVendorFormBtn").onclick = () => {
-            document.getElementById("addVendorForm").style.display = "block";
-            document.getElementById("vendorName").focus();
-        };
+  window.toggleListaCheck = (nome) => {
+    checkedLista[nome] = !checkedLista[nome];
+    renderLista();
+  };
 
-        document.getElementById("cancelAddVendorBtn").onclick = cancelAddVendor;
-
-        function cancelAddVendor() {
-            document.getElementById("addVendorForm").style.display = "none";
-            document.getElementById("vendorName").value = "";
-        }
-
-        function renderVendorQueue() {
-            const vendorList = document.getElementById('vendorQueue');
-            vendorList.innerHTML = '';
-            vendorList.className = currentMode === 'free' ? 'totem-grid' : '';
-            if (currentMode === 'queue') {
-                if (vendorQueue.length > 0) {
-                    vendorQueue.forEach((vendor, index) => {
-                        const div = document.createElement('div');
-                        div.className = 'queue-item';
-                        div.innerHTML = `
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div class="queue-position">${index + 1}</div>
-                                <div class="employee-info">
-                                    <h4>${vendor.name}</h4>
-                                    <p>${vendor.priority ? '<span style="color: gold;">(Prioridade)</span>' : ''}</p>
-                                </div>
-                            </div>
-                        `;
-                        vendorList.appendChild(div);
-                    });
-                } else {
-                    vendorList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-users"></i></div>
-                            <p>Nenhum vendedor com check-in registrado.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                const checkedInVendors = allVendors.filter(vendor => vendor.checkedIn);
-                if (checkedInVendors.length > 0) {
-                    checkedInVendors.forEach(vendor => {
-                        const div = document.createElement('div');
-                        div.className = 'totem-item';
-                        div.innerHTML = `
-                            <h4>${vendor.name}</h4>
-                            <p>${vendor.priority ? '<span style="color: gold;">(Prioridade)</span>' : ''}</p>
-                        `;
-                        div.onclick = () => selectVendorForSale(vendor);
-                        vendorList.appendChild(div);
-                    });
-                } else {
-                    vendorList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-users"></i></div>
-                            <p>Nenhum vendedor com check-in registrado.</p>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        function selectVendorForSale(vendor) {
-            if (currentMode !== 'free') {
-                showToast("Selecione vendedores diretamente apenas no modo Livre.", "danger");
-                return;
-            }
-            currentEmployee = { ...vendor, startTime: new Date() };
-            const vendorSelect = document.getElementById('vendorAssigned');
-            vendorSelect.innerHTML = `<option value="${vendor.id}">${vendor.name}</option>`;
-            showToast(`${vendor.name} selecionado para atendimento.`, 'success');
-            renderCurrentService();
-        }
-
-        function loadVendors(uid) {
-            const vendorsRef = ref(db, `vendors/${uid}`);
-            onValue(vendorsRef, snapshot => {
-                const vendorCheckInList = document.getElementById('vendorCheckInList');
-                const vendorSelect = document.getElementById('vendorAssigned');
-                allVendors = [];
-                vendorQueue = [];
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    allVendors = Object.entries(data).map(([id, vendor]) => ({
-                        id,
-                        ...vendor
-                    }));
-                    allVendors.sort((a, b) => a.order - b.order);
-                    vendorQueue = allVendors
-                        .filter(vendor => vendor.checkedIn)
-                        .sort((a, b) => {
-                            if (a.priority && !b.priority) return -1;
-                            if (!a.priority && b.priority) return 1;
-                            return a.order - b.order;
-                        });
-                    vendorCheckInList.innerHTML = allVendors.map(vendor => `
-                        <div class="queue-item">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div class="employee-info">
-                                    <h4>${vendor.name}</h4>
-                                    <p>${vendor.priority ? '<span style="color: gold;">(Prioridade)</span>' : ''}</p>
-                                    <p>${vendor.checkedIn ? '<span class="success-text">Presente</span>' : '<span class="text-danger">Ausente</span>'}</p>
-                                </div>
-                            </div>
-                            <div class="employee-actions">
-                                <button class="btn btn-small ${vendor.checkedIn ? 'btn-danger' : 'btn-success'}" onclick="toggleCheckIn('${vendor.id}', ${!vendor.checkedIn})">
-                                    <i class="fas fa-check-circle"></i> ${vendor.checkedIn ? 'Desmarcar' : 'Fazer Check-in'}
-                                </button>
-                                <button class="btn btn-delete btn-small" onclick="removeVendor('${vendor.id}')">
-                                    <i class="fas fa-trash"></i> Remover
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                    renderVendorQueue();
-                    if (currentEmployee && vendorQueue.some(v => v.id === currentEmployee.id)) {
-                        vendorSelect.innerHTML = `<option value="${currentEmployee.id}">${currentEmployee.name}</option>`;
-                    } else if (currentMode === 'queue' && vendorQueue.length > 0) {
-                        currentEmployee = null;
-                        vendorSelect.innerHTML = `<option value="">Nenhum vendedor disponível</option>`;
-                    } else {
-                        vendorSelect.innerHTML = `<option value="">${currentMode === 'queue' ? 'Nenhum vendedor disponível' : 'Selecione um vendedor'}</option>`;
-                    }
-                } else {
-                    vendorCheckInList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-users"></i></div>
-                            <p>Nenhum vendedor registrado.</p>
-                        </div>
-                    `;
-                    renderVendorQueue();
-                    vendorSelect.innerHTML = `<option value="">${currentMode === 'queue' ? 'Nenhum vendedor disponível' : 'Selecione um vendedor'}</option>`;
-                    currentEmployee = null;
-                }
-                updateStats();
-                renderCurrentService();
-            });
-        }
-
-        window.toggleCheckIn = (id, checkInStatus) => {
-            const user = auth.currentUser;
-            if (!user) return;
-            update(ref(db, `vendors/${user.uid}/${id}`), {
-                checkedIn: checkInStatus
-            }).then(() => {
-                showToast(checkInStatus ? "Check-in realizado!" : "Check-in desmarcado!", "success");
-                if (!checkInStatus && currentEmployee && currentEmployee.id === id) {
-                    currentEmployee = null;
-                    renderCurrentService();
-                }
-                loadVendors(user.uid);
-            }).catch(err => showToast("Erro ao atualizar check-in: " + err.message, "danger"));
-        };
-
-        window.removeVendor = (id) => {
-            const user = auth.currentUser;
-            if (!user) return;
-            if (confirm("Tem certeza que deseja remover este vendedor?")) {
-                remove(ref(db, `vendors/${user.uid}/${id}`)).then(() => {
-                    showToast("Vendedor removido!", "danger");
-                    if (currentEmployee && currentEmployee.id === id) {
-                        currentEmployee = null;
-                        renderCurrentService();
-                    }
-                    loadVendors(user.uid);
-                }).catch(err => showToast("Erro ao remover vendedor: " + err.message, "danger"));
-            }
-        };
-
-        document.getElementById("resetQueueBtn").onclick = () => {
-            const user = auth.currentUser;
-            if (!user) return;
-            if (confirm("Tem certeza que deseja resetar a fila para o padrão?")) {
-                const vendorsRef = ref(db, `vendors/${user.uid}`);
-                allVendors.forEach((vendor, index) => {
-                    update(ref(db, `vendors/${user.uid}/${vendor.id}`), {
-                        order: index
-                    });
-                });
-                showToast("Fila resetada para o padrão!", "success");
-                currentEmployee = null;
-                loadVendors(user.uid);
-            }
-        };
-
-        function renderCurrentService() {
-            const area = document.getElementById("currentServiceArea");
-            const saleForm = document.getElementById("saleForm");
-            const vendorSelect = document.getElementById("vendorAssigned");
-            if (!currentEmployee || (currentMode === 'queue' && !vendorQueue.some(v => v.id === currentEmployee.id))) {
-                currentEmployee = null;
-                area.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-user"></i></div>
-                        <p>Nenhum vendedor em atendimento</p>
-                        <button class="btn btn-primary" id="nextBtn" ${currentMode === 'queue' && vendorQueue.length === 0 ? 'disabled' : ''}>
-                            Iniciar Próximo Atendimento
-                        </button>
-                    </div>
-                `;
-                saleForm.style.display = "none";
-                vendorSelect.innerHTML = `<option value="">${currentMode === 'queue' ? 'Nenhum vendedor disponível' : 'Selecione um vendedor'}</option>`;
-                document.getElementById("nextBtn").onclick = nextEmployee;
-                return;
-            }
-            const startTime = currentEmployee.startTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            area.innerHTML = `
-                <div class="current-service">
-                    <h3>${currentEmployee.name}</h3>
-                    <p>${currentEmployee.priority ? 'Prioridade' : 'Vendedor'}</p>
-                    <div class="service-time">
-                        <span class="icon"><i class="fas fa-clock"></i></span>
-                        <span>Iniciado às ${startTime}</span>
-                    </div>
-                </div>
-            `;
-            saleForm.style.display = "block";
-            vendorSelect.innerHTML = `<option value="${currentEmployee.id}">${currentEmployee.name}</option>`;
-        }
-
-        function nextEmployee() {
-            if (currentMode !== 'queue') {
-                showToast('Use o modo livre para selecionar vendedores diretamente.', 'danger');
-                return;
-            }
-            if (vendorQueue.length === 0) {
-                showToast("Não há mais vendedores na fila de atendimento.", "danger");
-                currentEmployee = null;
-                renderCurrentService();
-                return;
-            }
-            currentEmployee = { ...vendorQueue[0], startTime: new Date() };
-            showToast(`${currentEmployee.name} está agora atendendo.`, "success");
-            renderCurrentService();
-        }
-
-        document.getElementById("submitSale").onclick = () => {
-            const saleResult = document.getElementById("saleResult").value;
-            const notSoldReason = document.getElementById("notSoldReason").value.trim();
-            const saleDetails = document.getElementById("saleDetails").value.trim();
-            const vendorId = document.getElementById("vendorAssigned").value;
-            if (!vendorId || !currentEmployee) {
-                showToast("Certifique-se de que há um vendedor selecionado.", "danger");
-                return;
-            }
-            const user = auth.currentUser;
-            if (user) {
-                const salesRef = ref(db, `sales/${user.uid}`);
-                const data = {
-                    vendorId,
-                    vendorName: currentEmployee.name,
-                    saleResult,
-                    notSoldReason: saleResult === "not_sold" ? notSoldReason : "",
-                    saleDetails,
-                    timestamp: new Date().toISOString()
-                };
-                const saveSale = editId ? 
-                    update(ref(db, `sales/${user.uid}/${editId}`), data) :
-                    push(salesRef, data);
-                saveSale.then(() => {
-                    showToast(editId ? "Atendimento atualizado!" : "Atendimento registrado!", "success");
-                    editId = null;
-                    clearForm();
-                    updateVendorQueue(user.uid);
-                    loadSales(user.uid);
-                    if (currentMode === 'queue') {
-                        nextEmployee(); // Automatically select next vendor in queue mode
-                    } else {
-                        currentEmployee = null; // Clear current employee in free mode
-                        renderCurrentService();
-                    }
-                }).catch(err => showToast("Erro ao registrar atendimento: " + err.message, "danger"));
-            }
-        };
-
-        function updateVendorQueue(uid) {
-            if (currentMode === 'queue' && vendorQueue.length > 0 && currentEmployee) {
-                const vendorsRef = ref(db, `vendors/${uid}`);
-                const movedVendor = vendorQueue.find(v => v.id === currentEmployee.id);
-                if (movedVendor) {
-                    vendorQueue = vendorQueue.filter(v => v.id !== currentEmployee.id);
-                    movedVendor.order = Math.max(...allVendors.map(v => v.order)) + 1;
-                    vendorQueue.push(movedVendor);
-                    vendorQueue.forEach((vendor, index) => {
-                        update(ref(db, `vendors/${uid}/${vendor.id}`), {
-                            order: index
-                        });
-                    });
-                }
-                loadVendors(uid);
-            } else {
-                loadVendors(uid);
-            }
-        }
-
-        function loadSales(uid) {
-            const salesRef = ref(db, `sales/${uid}`);
-            onValue(salesRef, snapshot => {
-                const salesList = document.getElementById("salesList");
-                salesList.innerHTML = "";
-                currentSalesData = [];
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    currentSalesData = Object.entries(data).map(([id, sale]) => ({
-                        id,
-                        ...sale
-                    }));
-                    salesList.innerHTML = currentSalesData.map(sale => `
-                        <div class="history-item">
-                            <div class="employee-info">
-                                <h4>${sale.vendorName}</h4>
-                                <p>${new Date(sale.timestamp).toLocaleString()}</p>
-                                <p>${sale.saleResult === "sold" ? "Venda Realizada" : "Não Vendido"}</p>
-                                ${sale.saleResult === "not_sold" ? `<p>Motivo: ${sale.notSoldReason}</p>` : ""}
-                                <p>Detalhes: ${sale.saleDetails || "Nenhum"}</p>
-                            </div>
-                            <div class="employee-actions">
-                                <button class="btn btn-small btn-primary" onclick="editSale('${sale.id}')">
-                                    <i class="fas fa-edit"></i> Editar
-                                </button>
-                                <button class="btn btn-small btn-delete" onclick="deleteSale('${sale.id}')">
-                                    <i class="fas fa-trash"></i> Excluir
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    salesList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
-                            <p>Nenhum atendimento registrado ainda</p>
-                        </div>
-                    `;
-                }
-                updateStats();
-            });
-        }
-
-        window.editSale = (id) => {
-            const user = auth.currentUser;
-            if (!user) return;
-            const saleRef = ref(db, `sales/${user.uid}/${id}`);
-            onValue(saleRef, snapshot => {
-                if (snapshot.exists()) {
-                    const sale = snapshot.val();
-                    document.getElementById("saleResult").value = sale.saleResult;
-                    document.getElementById("notSoldReason").value = sale.notSoldReason;
-                    document.getElementById("saleDetails").value = sale.saleDetails;
-                    document.getElementById("notSoldReasonGroup").style.display = sale.saleResult === "not_sold" ? "block" : "none";
-                    editId = id;
-                }
-            }, { onlyOnce: true });
-        };
-
-        window.deleteSale = (id) => {
-            const user = auth.currentUser;
-            if (!user) return;
-            if (confirm("Tem certeza que deseja excluir este atendimento?")) {
-                remove(ref(db, `sales/${user.uid}/${id}`)).then(() => {
-                    showToast("Atendimento excluído!", "danger");
-                    loadSales(user.uid);
-                });
-            }
-        };
-
-        function clearForm() {
-            document.getElementById("saleResult").value = "sold";
-            document.getElementById("notSoldReason").value = "";
-            document.getElementById("saleDetails").value = "";
-            document.getElementById("notSoldReasonGroup").style.display = "none";
-        }
-
-        function updateStats() {
-            document.getElementById("queueCount").textContent = vendorQueue.length;
-            document.getElementById("totalServices").textContent = currentSalesData.length;
-            const completedSales = currentSalesData.filter(sale => sale.saleResult === "sold").length;
-            document.getElementById("completedSales").textContent = completedSales;
-            const successRate = currentSalesData.length > 0 ?
-                ((completedSales / currentSalesData.length) * 100).toFixed(1) : "0";
-            document.getElementById("successRate").textContent = successRate + "%";
-        }
-
-        document.getElementById("exportPdfBtn").onclick = async () => {
-            if (currentSalesData.length === 0) {
-                showToast("Não há atendimentos para exportar.", "danger");
-                return;
-            }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            let startY = 20;
-            try {
-                const imageUrl = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQah2QIOfwC0zx1PXhE11jprq5zvwglscFUFA&s';
-                const imageData = await getBase64Image(imageUrl);
-                doc.addImage(imageData, 'PNG', 10, 10, 40, 40);
-                doc.setFontSize(16);
-                doc.text("Relatório Lista da Vez", 55, 30);
-                startY = 50;
-            } catch (e) {
-                console.error("Erro ao carregar imagem:", e);
-                doc.setFontSize(16);
-                doc.text("Relatório Lista da Vez", 10, 10);
-                startY = 20;
-            }
-            const tableColumn = ["Vendedor", "Resultado", "Motivo Não Venda", "Detalhes", "Data"];
-            const tableRows = currentSalesData.map(sale => [
-                sale.vendorName,
-                sale.saleResult === "sold" ? "Venda Realizada" : "Não Vendido",
-                sale.notSoldReason || "-",
-                sale.saleDetails || "-",
-                new Date(sale.timestamp).toLocaleString()
-            ]);
-            doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: startY,
-                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-                headStyles: { fillColor: [34, 139, 34], textColor: [255, 255, 255] },
-                alternateRowStyles: { fillColor: [240, 240, 240] }
-            });
-            doc.save("relatorio_lista_da_vez.pdf");
-        };
-
-        document.getElementById("exportExcelBtn").onclick = () => {
-            if (currentSalesData.length === 0) {
-                showToast("Não há atendimentos para exportar.", "danger");
-                return;
-            }
-            const worksheet = XLSX.utils.json_to_sheet(currentSalesData.map(sale => ({
-                "Vendedor": sale.vendorName,
-                "Resultado": sale.saleResult === "sold" ? "Venda Realizada" : "Não Vendido",
-                "Motivo Não Venda": sale.notSoldReason || "-",
-                "Detalhes": sale.saleDetails || "-",
-                "Data": new Date(sale.timestamp).toLocaleString()
-            })));
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Atendimentos");
-            XLSX.writeFile(workbook, "relatorio_lista_da_vez.xlsx");
-        };
-
-        document.getElementById("sendReportBtn").onclick = () => {
-            const phoneNumber = document.getElementById("phoneNumber").value.trim();
-            if (!phoneNumber) {
-                showToast("Por favor, insira um número de telefone.", "danger");
-                return;
-            }
-            if (currentSalesData.length === 0) {
-                showToast("Não há atendimentos para enviar no relatório.", "danger");
-                return;
-            }
-            let reportMessage = "Relatório Lista da Vez:\n\n";
-            currentSalesData.forEach(sale => {
-                reportMessage += `Vendedor: ${sale.vendorName}\n`;
-                reportMessage += `Resultado: ${sale.saleResult === "sold" ? "Venda Realizada" : "Não Vendido"}\n`;
-                if (sale.saleResult === "not_sold") {
-                    reportMessage += `Motivo: ${sale.notSoldReason}\n`;
-                }
-                reportMessage += `Detalhes: ${sale.saleDetails || "Nenhum"}\n`;
-                reportMessage += `Data: ${new Date(sale.timestamp).toLocaleString()}\n`;
-                reportMessage += `--------------------------------------\n`;
-            });
-            if (confirm("Isso abrirá o WhatsApp com a mensagem preenchida. Deseja continuar?")) {
-                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(reportMessage)}`;
-                window.open(whatsappUrl, '_blank');
-            }
-        };
-
-        document.getElementById("saleResult").addEventListener("change", () => {
-            const notSoldReason = document.getElementById("notSoldReasonGroup");
-            notSoldReason.style.display = document.getElementById("saleResult").value === "not_sold" ? "block" : "none";
-        });
-
-        const themeToggle = document.getElementById("themeToggle");
-        themeToggle.addEventListener("click", () => {
-            const currentTheme = document.body.getAttribute("data-theme") || "light";
-            const newTheme = currentTheme === "light" ? "dark" : "light";
-            document.body.setAttribute("data-theme", newTheme);
-            themeToggle.innerHTML = newTheme === "light" ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-            localStorage.setItem("theme", newTheme);
-        });
-
-        const savedTheme = localStorage.getItem("theme") || "light";
-        document.body.setAttribute("data-theme", savedTheme);
-        themeToggle.innerHTML = savedTheme === "light" ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-
-        function getBase64Image(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'Anonymous';
-                img.src = url;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    const dataURL = canvas.toDataURL('image/png');
-                    resolve(dataURL);
-                };
-                img.onerror = (err) => reject(err);
-            });
-        }
-    </script>
+  // Atualiza ao mudar data
+  document.getElementById('filterDate').onchange = () => {
+    checkedItems = {};
+    checkedLista = {};
+    expandedCards = {};
+    loadSales();
+  };
+</script>
 </body>
 </html>
