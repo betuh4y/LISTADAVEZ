@@ -484,11 +484,6 @@
       transition: color .15s ease, border-color .15s ease;
     }
 
-    .cat-chip .ico {
-      font-size: 13px;
-      line-height: 1;
-    }
-
     .cat-chip:hover {
       color: var(--ink);
     }
@@ -512,10 +507,6 @@
       color: var(--brand);
       letter-spacing: -.2px;
       margin: 0 0 10px 2px;
-    }
-
-    .cat-section-title .ico {
-      font-size: 17px;
     }
 
     .cat-section-title .count {
@@ -684,7 +675,7 @@
       align-items: center;
       gap: 8px;
       margin-top: auto;
-      padding-top: 2px;
+      padding-top: 4px;
     }
 
     @media (max-width: 400px) {
@@ -712,12 +703,12 @@
     }
 
     .qty-stepper button {
-      width: 28px;
-      height: 30px;
+      width: 34px;
+      height: 38px;
       border: none;
       background: var(--line-2);
       color: var(--ink-2);
-      font-size: 15px;
+      font-size: 17px;
       cursor: pointer;
       font-weight: 700;
     }
@@ -727,11 +718,11 @@
     }
 
     .qty-stepper input {
-      width: 42px;
+      width: 50px;
       border: none;
       text-align: center;
       font-family: var(--mono);
-      font-size: 12.5px;
+      font-size: 13.5px;
       font-weight: 600;
       background: var(--surface);
       outline: none;
@@ -766,8 +757,8 @@
       color: #fff;
       border: none;
       border-radius: var(--r-sm);
-      height: 30px;
-      font-size: 12.5px;
+      height: 38px;
+      font-size: 13.5px;
       font-weight: 700;
       cursor: pointer;
       transition: background .15s ease;
@@ -1018,7 +1009,7 @@
 
 <body>
 
-  <div class="top-bar" id="topBar">🌿 Produtos frescos, direto pra você</div>
+  <div class="top-bar" id="topBar">Produtos frescos, direto pra você</div>
 
   <header>
     <div class="head-row">
@@ -1062,7 +1053,7 @@
 
   <div id="promoSection" style="display:none;">
     <div class="promo-section-head">
-      <h2>🔥 Ofertas em destaque</h2>
+      <h2>Ofertas em destaque</h2>
     </div>
     <div class="promo-strip" id="promoStrip"></div>
   </div>
@@ -1203,13 +1194,13 @@
     // ══════════════════════════════════════════════════
     const TEMA_DEFS = {
       'padrao': { nome: 'Padrão', cor: '#1e4d35', corMd: '#2d6a4f', corLt: '#40916c', aviso: null },
-      'natal': { nome: 'Natal', cor: '#b91c1c', corMd: '#c0392b', corLt: '#e05555', aviso: '🎄 Boas festas! Confira nossas ofertas especiais de Natal' },
-      'ano-novo': { nome: 'Ano Novo', cor: '#8a6d1d', corMd: '#a5842a', corLt: '#c9a63e', aviso: '🎆 Feliz Ano Novo! Comece com o pé direito' },
-      'carnaval': { nome: 'Carnaval', cor: '#7c3aed', corMd: '#8b5cf6', corLt: '#a78bfa', aviso: '🎉 Foliã(o), bloco liberado! Confira as ofertas de Carnaval' },
-      'dia-das-maes': { nome: 'Dia das Mães', cor: '#c2185b', corMd: '#d13d76', corLt: '#e0699a', aviso: '💐 Para quem cuida da gente: Feliz Dia das Mães' },
-      'dia-dos-namorados': { nome: 'Dia dos Namorados', cor: '#d6336c', corMd: '#e0548a', corLt: '#ea7ba8', aviso: '❤️ Dia dos Namorados: mimos especiais pra quem você ama' },
-      'festa-junina': { nome: 'Festa Junina', cor: '#b45309', corMd: '#c46a1f', corLt: '#d68b42', aviso: '🌽 Arraiá bom é aqui! Ofertas de Festa Junina' },
-      'dia-dos-pais': { nome: 'Dia dos Pais', cor: '#2c5282', corMd: '#3b6ba3', corLt: '#5a87bd', aviso: '👔 Feliz Dia dos Pais' },
+      'natal': { nome: 'Natal', cor: '#b91c1c', corMd: '#c0392b', corLt: '#e05555', aviso: 'Boas festas! Confira nossas ofertas especiais de Natal' },
+      'ano-novo': { nome: 'Ano Novo', cor: '#8a6d1d', corMd: '#a5842a', corLt: '#c9a63e', aviso: 'Feliz Ano Novo! Comece com o pé direito' },
+      'carnaval': { nome: 'Carnaval', cor: '#7c3aed', corMd: '#8b5cf6', corLt: '#a78bfa', aviso: 'Foliã(o), bloco liberado! Confira as ofertas de Carnaval' },
+      'dia-das-maes': { nome: 'Dia das Mães', cor: '#c2185b', corMd: '#d13d76', corLt: '#e0699a', aviso: 'Para quem cuida da gente: Feliz Dia das Mães' },
+      'dia-dos-namorados': { nome: 'Dia dos Namorados', cor: '#d6336c', corMd: '#e0548a', corLt: '#ea7ba8', aviso: 'Dia dos Namorados: mimos especiais pra quem você ama' },
+      'festa-junina': { nome: 'Festa Junina', cor: '#b45309', corMd: '#c46a1f', corLt: '#d68b42', aviso: 'Arraiá bom é aqui! Ofertas de Festa Junina' },
+      'dia-dos-pais': { nome: 'Dia dos Pais', cor: '#2c5282', corMd: '#3b6ba3', corLt: '#5a87bd', aviso: 'Feliz Dia dos Pais' },
     };
 
     function enesimoDomingo(ano, mesIndex, n) {
@@ -1285,7 +1276,7 @@
       const arrows = document.querySelectorAll('.banner-arrow');
 
       if (!urls.length) {
-        track.innerHTML = `<div class="banner-fallback">🌿 ${escapeHtml(STORE_NAME)}</div>`;
+        track.innerHTML = `<div class="banner-fallback">${escapeHtml(STORE_NAME)}</div>`;
         dots.innerHTML = '';
         arrows.forEach(a => a.style.display = 'none');
         bannerCount = 1;
@@ -1328,15 +1319,7 @@
       updateBannerPosition();
     }
 
-    const CAT_ICONS = {
-      'Frutas': '🍎', 'Verduras': '🥦', 'Grãos': '🌾', 'Suplementos': '💊',
-      'Bebidas': '🥤', 'Outros': '🛒'
-    };
     const CAT_PRIORITY = ['Frutas', 'Verduras', 'Grãos', 'Suplementos', 'Bebidas'];
-
-    function iconFor(cat) {
-      return CAT_ICONS[cat] || '🏷️';
-    }
 
     function ordenarCategorias(cats) {
       const set = new Set(cats);
@@ -1404,7 +1387,7 @@
       const ordered = ['Todos', ...ordenarCategorias(Array.from(cats))];
       catStrip.innerHTML = ordered.map(c => `
         <button class="cat-chip ${c === activeCat ? 'active' : ''}" data-cat="${escapeHtml(c)}">
-          <span class="ico">${c === 'Todos' ? '✨' : iconFor(c)}</span>${escapeHtml(c)}
+          ${escapeHtml(c)}
         </button>`
       ).join('');
       catStrip.querySelectorAll('.cat-chip').forEach(btn => {
@@ -1446,7 +1429,7 @@
           const itens = porCategoria[cat].sort((a, b) => a[1].nome.localeCompare(b[1].nome));
           return `
             <section class="cat-section">
-              <h2 class="cat-section-title"><span class="ico">${iconFor(cat)}</span>${escapeHtml(cat)}<span class="count">${itens.length} produto${itens.length > 1 ? 's' : ''}</span></h2>
+              <h2 class="cat-section-title">${escapeHtml(cat)}<span class="count">${itens.length} produto${itens.length > 1 ? 's' : ''}</span></h2>
               <div class="grid-inner">${itens.map(([codigo, p]) => cardHTML(codigo, p)).join('')}</div>
             </section>`;
         }).join('');
