@@ -1543,166 +1543,7 @@ $("chatQ").innerHTML=QUICK.map(q=>`<button>${q}</button>`).join("");$("chatQ").q
    enxada/tesoura/carrinho/gotejamento, cooperativa, festas, avaliações,
    pets, minijogos, histórias do Seu Zé, desastres em comunidade,
    conquistas raras, trilhas de aula com certificado PDF e mapa do Brasil.
-   Cole este bloco DEPOIS do script principal (antes de <script>
-/* =====================================================================
-   SÍTIO AGROFLORESTA — NOVIDADES v4: carro, moto e música do YouTube
-   ===================================================================== */
-(function(){
-"use strict";
-if(typeof SP==="undefined"||typeof THREE==="undefined")return;
-const W4={drv:null,veh:{},om:{},init:false,v:0,steer:0,keepMusic:LS.get("agro_ytkeep",false),vol:LS.get("agro_ytvol",70),playing:false,resume:false,comp:0,compMsg:0};
-const VEH={carro:{n:"Caminhonete",ico:"🛻",vmax:17,acc:7,steer:1.5,coll:1.4,dist:11,len:2.2},moto:{n:"Moto",ico:"🏍️",vmax:14,acc:9,steer:2.1,coll:.6,dist:8,len:.9}};
-const COLORS=[0xb03a2e,0x2e6fb0,0x2e7d4f,0xf2efe6,0x2a2a2a,0xe0a020,0x7a3a9a];
-Object.assign(CONC,{compactacao:{n:"Compactação do solo",ico:"🚜",t:"Pneus e pisoteio apertam a terra: a água não infiltra, as raízes não entram e as minhocas somem. Por isso se anda pelos caminhos e nunca por cima dos canteiros."}});
-
-/* ---------------- estilos e HUD ---------------- */
-const css=document.createElement("style");css.textContent=`
-#v4hud{position:fixed;left:50%;bottom:calc(12px + var(--sb));transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:6px 12px;pointer-events:auto;z-index:9}
-#v4hud b{font:900 24px "Arial Black",sans-serif;min-width:44px;text-align:right}#v4hud .ib{width:38px;height:38px}
-#v4song{max-width:170px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;color:var(--mut)}
-#v4yt{position:fixed;left:calc(10px + var(--sl));bottom:calc(64px + var(--sb));z-index:9;padding:6px;display:none;pointer-events:auto;width:212px}
-#v4yt .t{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;margin-bottom:4px}#v4yt .t span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-#v4yt .t button{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:7px;width:26px;height:24px;padding:0;font-size:12px}
-#v4yt iframe{display:block;border-radius:6px}
-body.mob #v4yt{left:50%;transform:translateX(-50%);top:calc(36px + var(--st));bottom:auto;width:172px}
-body.mob #v4hud{bottom:calc(4px + var(--sb));padding:3px 8px;gap:5px}body.mob #v4hud b{font-size:17px;min-width:32px}body.mob #v4hud .ib{width:32px;height:32px;font-size:15px}body.mob #v4song{max-width:90px;font-size:10px}`;
-document.head.appendChild(css);
-const hud=document.createElement("div");hud.id="v4hud";hud.className="pn";
-hud.innerHTML='<b id="v4spd">0</b><small>km/h</small><span id="v4song"></span><button class="ib" id="v4mus" title="Música e cor (M)">🎵</button><button class="ib" id="v4horn" title="Buzina (Espaço)">📯</button><button class="ib" id="v4out" title="Sair (F)">🅿️</button>';
-$("game").appendChild(hud);
-const yt=document.createElement("div");yt.id="v4yt";yt.className="pn";
-yt.innerHTML='<div class="t">🎵<span id="v4ytT">YouTube</span><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytX" title="Fechar">✕</button></div><div id="v4ytP"></div>';
-$("game").appendChild(yt);
-const ov=document.createElement("div");ov.className="ov";ov.id="v4ov";ov.innerHTML='<div class="box"><h3><span>🚗 Painel do veículo</span><button class="x" data-close>✕</button></h3><div id="v4B"></div></div>';
-$("game").appendChild(ov);ov.querySelector("[data-close]").onclick=closeOv;
-
-/* ---------------- modelos ---------------- */
-function vehMesh(t,col){const g=new THREE.Group(),M=(c,r,m)=>mat("vh"+c+"_"+(r||0)+"_"+(m||0),null,{color:c,r:r==null?.5:r,m:m||0}),
-  paint=mat("vhpaint"+col,null,{color:col,r:.35,m:.25,env:1}),glass=mat("vhglass",null,{color:0x1e2a33,r:.1,m:.4,env:1.2}),chrome=M(0xc8ccd0,.25,.85),dark=M(0x222222,.8),
-  lamp=mat("vhlamp",null,{color:0xfff6d8,r:.2,em:0xfff2c0,ei:1.2}),tail=mat("vhtail",null,{color:0xc0201a,r:.3,em:0x801010,ei:1}),wheels=[];
-  const box=(w,h,d,x,y,z,m,rx)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(rx)o.rotation.x=rx;o.castShadow=Q>0;g.add(o);return o};
-  const wheel=(x,y,z,r,w)=>{const wg=new THREE.Group();wg.position.set(x,y,z);const tire=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,16),M(0x1a1a1a,.9));tire.rotation.z=Math.PI/2;tire.castShadow=Q>0;wg.add(tire);
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(r*.55,r*.55,w+.02,10),chrome);hub.rotation.z=Math.PI/2;wg.add(hub);const sp=new THREE.Mesh(new THREE.BoxGeometry(w+.05,r*1.5,.07),dark);wg.add(sp);g.add(wg);wheels.push(wg)};
-  if(t==="carro"){box(1.9,.55,4.4,0,.72,0,paint);box(1.75,.68,1.9,0,1.33,-.4,paint);box(1.6,.5,.06,0,1.34,-1.36,glass,-.12);box(1.77,.42,1.4,0,1.38,-.4,glass);box(1.6,.38,.06,0,1.38,.56,glass);
-    for(const s of[-1,1])box(.08,.34,2.1,s*.91,1.16,1.12,paint);box(1.9,.34,.08,0,1.16,2.17,paint);
-    const wood=mat("v_wood");box(.55,.32,.42,-.42,1.15,1.05,wood);box(.55,.32,.42,.3,1.15,1.5,wood);const sack=new THREE.Mesh(new THREE.SphereGeometry(.28,10,8),M(0xd8c090,.95));sack.scale.set(1,.7,1.2);sack.position.set(.35,1.18,.85);g.add(sack);
-    for(const z of[-2.22,2.22])box(1.96,.18,.16,0,.48,z,chrome);box(1,.22,.04,0,.76,-2.21,dark);for(const s of[-1,1]){box(.36,.16,.05,s*.66,.84,-2.21,lamp);box(.26,.16,.05,s*.76,.86,2.21,tail)}
-    for(const s of[-1,1])for(const z of[-1.35,1.4])wheel(s*.95,.4,z,.4,.32)}
-  else{wheel(0,.33,-.72,.33,.13);wheel(0,.33,.7,.33,.13);box(.12,.12,1.05,0,.6,0,dark,.12);box(.34,.24,.48,0,.86,-.24,paint);box(.3,.1,.62,0,.86,.28,M(0x161616,.9));
-    for(const s of[-1,1])box(.05,.62,.05,s*.08,.66,-.6,chrome,.35);box(.72,.04,.04,0,1.04,-.5,chrome);box(.18,.15,.08,0,.92,-.68,lamp);box(.14,.08,.05,0,.8,.62,tail);
-    box(.22,.06,.5,0,.68,.72,paint);const ex=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.7,8),chrome);ex.rotation.x=Math.PI/2;ex.position.set(.2,.42,.3);g.add(ex)}
-  const sh=new THREE.Mesh(new THREE.CircleGeometry(t==="carro"?1.7:.7,16),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.28,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.position.y=.04;sh.scale.set(t==="carro"?.65:.5,1.4,1);g.add(sh);
-  g.userData={wheels,t};return g}
-
-/* ---------------- estacionamento ---------------- */
-const vehKey=()=>"agro_veh_"+FK;
-function defaultPark(t){const p=slotPos(mySlot),gd=gateDir(mySlot),px=-gd.z,pz=gd.x,al=HALF+5,side=t==="carro"?-6:-3.4;return {x:p.x+gd.x*al+px*side,z:p.z+gd.z*al+pz*side,h:Math.atan2(-gd.x,-gd.z)}}
-function saveVeh(){const o={};for(const t in W4.veh){const v=W4.veh[t];o[t]={x:+v.m.position.x.toFixed(2),z:+v.m.position.z.toFixed(2),h:+v.h.toFixed(3),c:v.c}}LS.set(vehKey(),o)}
-function buildVeh(t,keep){const v=W4.veh[t];if(v&&v.m)scene.remove(v.m);const m=vehMesh(t,COLORS[(keep.c||0)%COLORS.length]);m.position.set(keep.x,groundY(keep.x,keep.z),keep.z);m.rotation.y=keep.h;scene.add(m);
-  const coll=v?v.coll:{x:keep.x,z:keep.z,r:VEH[t].coll};if(!v)COLL.push(coll);W4.veh[t]={t,m,h:keep.h,c:keep.c||0,coll};if(W4.drv!==t){coll.x=keep.x;coll.z=keep.z}}
-function initVeh(){const S=LS.get(vehKey(),{});for(const t of ["carro","moto"]){const d=defaultPark(t),s=S[t]&&Math.abs(S[t].x)<80&&Math.abs(S[t].z)<80?S[t]:d;buildVeh(t,{x:s.x,z:s.z,h:s.h==null?d.h:s.h,c:s.c||(t==="carro"?0:4)})}
-  if(Q>0){W4.light=new THREE.SpotLight(0xfff2d0,0,32,.55,.6,1.4);W4.light.castShadow=false;scene.add(W4.light,W4.light.target)}}
-
-/* ---------------- entrar / sair ---------------- */
-function enter(t){const v=W4.veh[t];if(!v)return;W4.drv=t;W4.v=0;W4.steer=0;v.coll.x=1e5;W4.camD=cam.dist;cam.dist=VEH[t].dist;P.x=v.m.position.x;P.z=v.m.position.z;P.yw=v.h;cam.yaw=v.h;
-  if(t==="carro")me.av.visible=false;$("tools").style.display="none";hud.style.display="flex";if(myRef)myRef.update({veh:t});audioOn();engOn();
-  if(W4.resume&&W4.player&&W4.player.playVideo){W4.player.playVideo();W4.resume=false}
-  toast(VEH[t].ico+" "+(MOB?"Joystick acelera e vira. Toque em 🅿️ para sair.":"W/S acelera e freia, A/D vira, Espaço buzina, M música, F sai."));}
-function leave(){const t=W4.drv;if(!t)return;const v=W4.veh[t],h=v.h,rx=Math.cos(h),rz=-Math.sin(h),off=t==="carro"?1.7:1;W4.drv=null;W4.v=0;
-  let [x,z]=collide(v.m.position.x-rx*off,v.m.position.z-rz*off);P.x=x;P.z=z;P.vx=P.vz=0;v.coll.x=v.m.position.x;v.coll.z=v.m.position.z;
-  me.av.visible=true;const u=me.av.userData;u.body.rotation.x=0;me.av.rotation.z=0;cam.dist=W4.camD||9;$("tools").style.display="";hud.style.display="none";if(W4.light)W4.light.intensity=0;
-  if(myRef)myRef.update({veh:""});engOff();saveVeh();if(W4.playing&&!W4.keepMusic&&W4.player&&W4.player.pauseVideo){W4.player.pauseVideo();W4.resume=true}}
-function horn(){if(!soundOn||!ACx)return;tn(415,.35,.13,"square");tn(523,.35,.1,"square")}
-
-/* ---------------- dirigir ---------------- */
-const angD=(a,b)=>((a-b+Math.PI*3)%(Math.PI*2))-Math.PI;
-function drive(dt){const t=W4.drv,D=VEH[t],v=W4.veh[t],m=v.m;let thr=0,st=0;
-  if(!ovOpen()){if(K.KeyW||K.ArrowUp)thr+=1;if(K.KeyS||K.ArrowDown)thr-=1;if(K.KeyA||K.ArrowLeft)st-=1;if(K.KeyD||K.ArrowRight)st+=1;if(jx||jy){thr=-jy;st=jx}}
-  const wet=groundY(m.position.x,m.position.z)<-.1,vmax=D.vmax*(wet?.4:1);
-  if(thr>0)W4.v+=(W4.v<0?D.acc*2.2:D.acc)*thr*dt;else if(thr<0)W4.v+=(W4.v>.3?-D.acc*2.2:-D.acc*.7)*(-thr)*dt;else W4.v-=W4.v*Math.min(1,dt*1.4);
-  W4.v=clamp(W4.v,-5,vmax);if(Math.abs(W4.v)<.05&&!thr)W4.v=0;
-  W4.steer+=(st-W4.steer)*Math.min(1,dt*6);const f=clamp(Math.abs(W4.v)/4,0,1);v.h-=W4.steer*D.steer*f*Math.sign(W4.v||1)*dt;
-  const fx=-Math.sin(v.h),fz=-Math.cos(v.h),qx=m.position.x+fx*W4.v*dt,qz=m.position.z+fz*W4.v*dt,dir=W4.v>=0?1:-1,px=qx+fx*D.len*dir,pz=qz+fz*D.len*dir,[cx,cz]=collide(px,pz);
-  if(Math.hypot(cx-px,cz-pz)>.02){if(Math.abs(W4.v)>6){snd.err();nz(300,.2,.25)}W4.v*=-.25}else{const [x,z]=collide(qx,qz);m.position.x=x;m.position.z=z}
-  m.position.y=groundY(m.position.x,m.position.z);m.rotation.y=v.h;m.rotation.z=t==="moto"?-W4.steer*.32*f:0;
-  for(const w of m.userData.wheels)w.rotation.x-=W4.v*dt/(t==="carro"?.4:.33);
-  P.x=m.position.x;P.z=m.position.z;P.y=m.position.y;P.yw=v.h;P.vx=fx*W4.v;P.vz=fz*W4.v;
-  if(t==="moto")seat(me.av,m);else{me.av.position.set(P.x,P.y,P.z);me.av.rotation.y=v.h}
-  if(!drag&&!Object.keys(looks).length&&Math.abs(W4.v)>1)cam.yaw+=angD(W4.v>0?v.h:v.h+Math.PI,cam.yaw)*Math.min(1,dt*2.2);
-  if(wet&&Math.abs(W4.v)>2&&Math.random()<dt*20)burst(new THREE.Vector3(P.x,.1,P.z),0xbfe4f2,4,{up:2,v:2,sp:1.2,life:.5});
-  else if(Math.abs(W4.v)>9&&Math.random()<dt*6&&!worldCell(P.x,P.z))smoke(new THREE.Vector3(P.x-fx*D.len,.3,P.z-fz*D.len),{size:.8,grow:2,life:1.2,op:.18,col:0xc8b896,vy:.4});
-  $("v4spd").textContent=Math.round(Math.abs(W4.v)*3.6);engTick();
-  if(W4.light){const night=dayF<.45;W4.light.intensity=night?2.2:0;if(night){W4.light.position.set(P.x+fx*1.5,1.1,P.z+fz*1.5);W4.light.target.position.set(P.x+fx*14,0,P.z+fz*14)}}
-  W4.comp+=dt;if(W4.comp>.5&&Math.abs(W4.v)>1.5){W4.comp=0;compact()}}
-function compact(){const w=worldCell(P.x,P.z);if(!w||w.slot!==mySlot||!unlocked(F.size,w.ci))return;const c=F.c[w.ci];c.v=Math.max(0,c.v-.6);c.a=Math.max(0,c.a-1);let hurt=false;
-  for(const k in c.p){const p=c.p[k];if(growth(p)<.35){p.h-=12;hurt=true}}touch(w.ci);const t=performance.now();if(t-W4.compMsg>45000){W4.compMsg=t;toast("🚜 O pneu compacta a terra"+(hurt?" e amassou mudas":"")+"! Dirija pelos caminhos, não nos canteiros.");lesson("compactacao")}}
-function seat(av,m){const u=av.userData,h=m.rotation.y;av.position.set(m.position.x+Math.sin(h)*.12,m.position.y-.1,m.position.z+Math.cos(h)*.12);av.rotation.y=h;av.rotation.z=m.rotation.z;
-  u.lL.rotation.x=u.lR.rotation.x=1.05;u.aL.rotation.x=u.aR.rotation.x=1.15;u.body.rotation.x=-.28;u.body.position.y=.88}
-
-/* ---------------- som do motor ---------------- */
-function engOn(){if(!ACx||W4.eng)return;try{const o=ACx.createOscillator(),o2=ACx.createOscillator(),f=ACx.createBiquadFilter(),g=ACx.createGain();o.type="sawtooth";o2.type="square";f.type="lowpass";f.frequency.value=520;g.gain.value=0;
-  o.connect(f);o2.connect(f);f.connect(g).connect(MB);o.start();o2.start();W4.eng={o,o2,f,g}}catch(e){}}
-function engTick(){const E=W4.eng;if(!E)return;const D=VEH[W4.drv],r=Math.abs(W4.v)/D.vmax,base=W4.drv==="moto"?58:36,fr=base+r*(W4.drv==="moto"?150:95),t=ACx.currentTime;
-  E.o.frequency.setTargetAtTime(fr,t,.06);E.o2.frequency.setTargetAtTime(fr*.5,t,.06);E.g.gain.setTargetAtTime(soundOn?(.035+.05*r)*(W4.playing?.45:1):0,t,.1)}
-function engOff(){const E=W4.eng;if(!E)return;W4.eng=null;try{E.g.gain.setTargetAtTime(0,ACx.currentTime,.08);setTimeout(()=>{E.o.stop();E.o2.stop()},400)}catch(e){}}
-
-/* ---------------- YouTube ---------------- */
-function ytParse(s){s=String(s||"").trim();let id=null,list=null;try{const u=new URL(/^https?:\/\//i.test(s)?s:"https://"+s),h=u.hostname.replace(/^(www|m|music)\./,"");
-  if(h==="youtu.be")id=u.pathname.slice(1).split("/")[0];else if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){id=u.searchParams.get("v");const mm=u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);if(!id&&mm)id=mm[2]}
-  list=u.searchParams.get("list")}catch(e){}if(!id&&/^[\w-]{11}$/.test(s))id=s;if(id&&!/^[\w-]{11}$/.test(id))id=null;if(list&&!/^[\w-]{10,64}$/.test(list))list=null;return id||list?{id,list}:null}
-function ytLoad(){if(window.YT&&YT.Player)return Promise.resolve();return new Promise((res,rej)=>{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev()}catch(e){}res()};
-  if(!$("v4ytapi")){const s=document.createElement("script");s.id="v4ytapi";s.src="https://www.youtube.com/iframe_api";s.onerror=rej;document.head.appendChild(s)}setTimeout(()=>rej("timeout"),12000)})}
-function ytTitle(){try{const d=W4.player.getVideoData();if(d&&d.title){$("v4ytT").textContent=d.title;$("v4song").textContent="🎵 "+d.title;const R_=LS.get("agro_yt",[]),r=R_.find(x=>x.url===W4.url);if(r&&r.t!==d.title){r.t=d.title;LS.set("agro_yt",R_)}}}catch(e){}}
-async function ytPlay(url){const P_=ytParse(url);if(!P_){toast("Link do YouTube inválido. Cole o endereço de um vídeo ou playlist.");return}W4.url=url;
-  const R_=LS.get("agro_yt",[]).filter(x=>x.url!==url);R_.unshift({url,t:(R_.find(x=>x.url===url)||{}).t||""});LS.set("agro_yt",R_.slice(0,6));
-  yt.style.display="block";$("v4ytT").textContent="Carregando…";
-  try{await ytLoad()}catch(e){toast("Não consegui carregar o YouTube (sem internet ou bloqueado).");yt.style.display="none";return}
-  const w=MOB?160:200,h=MOB?90:113;
-  if(W4.player&&W4.player.loadVideoById){if(P_.list)W4.player.loadPlaylist({list:P_.list,listType:"playlist",index:0});else W4.player.loadVideoById(P_.id);W4.player.setVolume(W4.vol);return}
-  W4.player=new YT.Player("v4ytP",{width:w,height:h,videoId:P_.id||undefined,playerVars:Object.assign({autoplay:1,playsinline:1,rel:0,modestbranding:1},P_.list?{list:P_.list,listType:"playlist"}:{}),
-    events:{onReady:e=>{e.target.setVolume(W4.vol);e.target.playVideo()},onStateChange:e=>{W4.playing=e.data===1;if(e.data===1)ytTitle()},
-      onError:e=>{toast([101,150].includes(e.data)?"🎵 Esse vídeo não permite tocar fora do YouTube. Tente outro.":"🎵 Não foi possível tocar esse vídeo.");W4.playing=false}}})}
-$("v4ytPP").onclick=()=>{const p=W4.player;if(!p||!p.getPlayerState)return;if(p.getPlayerState()===1)p.pauseVideo();else p.playVideo()};
-$("v4ytX").onclick=()=>{try{W4.player&&W4.player.stopVideo()}catch(e){}W4.playing=false;W4.resume=false;yt.style.display="none";$("v4song").textContent=""};
-
-/* ---------------- painel do veículo ---------------- */
-function openPanel(){if(!W4.drv){toast("Entre no carro ou na moto primeiro 🛻🏍️");return}const t=W4.drv,v=W4.veh[t],R_=LS.get("agro_yt",[]);openOv("v4ov");
-  $("v4B").innerHTML=`<label>🎵 Música do YouTube</label><div class="row" style="margin:0;align-items:center"><input type="text" id="v4url" placeholder="Cole o link de um vídeo ou playlist do YouTube" style="flex:3"><button class="mb pri" id="v4go" style="flex:1">▶️ Tocar</button></div>
-    ${R_.length?`<label>Tocadas recentemente</label><div class="row" style="margin:0">${R_.map((r,i)=>`<button class="qb" data-r="${i}" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🎵 ${esc(r.t||r.url)}</button>`).join("")}</div>`:""}
-    <label>Volume: <span id="v4vv">${W4.vol}</span></label><input type="range" id="v4vol" min="0" max="100" value="${W4.vol}" style="width:100%">
-    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4keep" ${W4.keepMusic?"checked":""} style="width:18px;height:18px"> Continuar tocando quando sair do veículo</label>
-    <p style="font-size:12px;color:var(--mut)">A música toca só no seu aparelho. Alguns vídeos não deixam tocar fora do YouTube; se acontecer, tente outro link.</p>
-    <label>🎨 Cor da ${t==="carro"?"caminhonete":"moto"}</label><div class="row" style="margin:0">${COLORS.map((c,i)=>`<button class="sw" data-c="${i}" aria-pressed="${i===v.c}" style="background:#${c.toString(16).padStart(6,"0")}"></button>`).join("")}</div>`;
-  const inp=$("v4url");inp.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Enter")$("v4go").click()});
-  $("v4go").onclick=()=>{ytPlay(inp.value);closeOv()};
-  $("v4B").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ytPlay(R_[+b.dataset.r].url);closeOv()});
-  $("v4vol").oninput=e=>{W4.vol=+e.target.value;$("v4vv").textContent=W4.vol;LS.set("agro_ytvol",W4.vol);try{W4.player&&W4.player.setVolume(W4.vol)}catch(_){}};
-  $("v4keep").onchange=e=>{W4.keepMusic=e.target.checked;LS.set("agro_ytkeep",W4.keepMusic)};
-  $("v4B").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const m=v.m;buildVeh(t,{x:m.position.x,z:m.position.z,h:v.h,c:+b.dataset.c});saveVeh();openPanel()})}
-$("v4mus").onclick=openPanel;$("v4horn").onclick=horn;$("v4out").onclick=()=>leave();
-
-/* ---------------- ganchos no jogo ---------------- */
-const oMove=movePlayer;movePlayer=function(dt){if(W4.drv&&W4.veh[W4.drv])return drive(dt);oMove(dt)};
-const oDo=doAction;doAction=function(){if(W4.drv)return horn();oDo()};
-const oIT=interactTick;
-interactTick=function(){oIT();try{let k=null,txt="";if(W4.drv){k="v4out";txt="🅿️ Sair da "+(W4.drv==="carro"?"caminhonete":"moto")}
-  else for(const t in W4.veh){const m=W4.veh[t].m;if(Math.hypot(P.x-m.position.x,P.z-m.position.z)<(t==="carro"?2.9:1.8)){k="v4:"+t;txt=VEH[t].ico+" Dirigir a "+(t==="carro"?"caminhonete":"moto");break}}
-  if(k){iaKind=k;$("ia").style.display="block";$("ia").textContent=(MOB?"":"F: ")+txt;$("bTalk").style.display="flex"}}catch(e){}};
-const oIn=interact;interact=function(){if(iaKind==="v4out")return leave();if(typeof iaKind==="string"&&iaKind.startsWith("v4:"))return enter(iaKind.slice(3));oIn()};
-const oNS=netState;netState=function(){const s=oNS();s.veh=W4.drv||"";s.vc=W4.drv&&W4.veh[W4.drv]?W4.veh[W4.drv].c:0;return s};
-const oOT=othersTick;
-othersTick=function(dt){oOT(dt);try{for(const id in others){const o=others[id];if(!o.av)continue;const want=o.veh||"",key=want+(o.vc||0);
-    if(key!==(o.vehK||"")){if(W4.om[id])scene.remove(W4.om[id]);W4.om[id]=want&&VEH[want]?vehMesh(want,COLORS[(o.vc||0)%COLORS.length]):null;if(W4.om[id])scene.add(W4.om[id]);o.vehK=key;o.av.visible=true;o.av.rotation.z=0}
-    const m=W4.om[id];if(!m)continue;const px=m.position.x,pz=m.position.z;m.position.set(o.rx,groundY(o.rx,o.rz),o.rz);m.rotation.y=o.yw||0;const sp=Math.hypot(o.rx-px,o.rz-pz)/Math.max(dt,.001);
-    for(const w of m.userData.wheels)w.rotation.x-=sp*dt/.38;if(want==="carro")o.av.visible=false;else{o.av.visible=true;seat(o.av,m)}}
-  for(const id in W4.om)if(!others[id]){if(W4.om[id])scene.remove(W4.om[id]);delete W4.om[id]}}catch(e){}};
-const oT2=tick2;tick2=function(dt,t){oT2(dt,t);if(!running||!F||!scene||mySlot<0)return;if(!W4.init){W4.init=true;try{initVeh()}catch(e){console.error("v4",e)}}};
-addEventListener("keydown",e=>{if(!running||document.activeElement.tagName==="INPUT")return;if(e.code==="KeyM"&&!ovOpen())openPanel()});
-const kh=document.querySelector("#lobby .keys");if(kh)kh.insertAdjacentHTML("beforeend"," · <kbd>F</kbd> perto do 🛻 dirige · <kbd>M</kbd> música");
-})();
-
-</script>
-</body>).
+   Cole este bloco DEPOIS do script principal (antes de </body>).
    ===================================================================== */
 (function(){
 "use strict";
@@ -2239,6 +2080,199 @@ V.tb=document.createElement("button");V.tb.className="tb";V.tb.dataset.tool="4";
 V.tb.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();audioOn();selTool(4)});
 const eb=document.createElement("button");eb.className="ib";eb.id="bEsc";eb.title="Escola do sítio (E)";eb.textContent="🎓";$("topb").insertBefore(eb,$("bMenu"));eb.onclick=()=>openEscola();
 const kh=document.querySelector("#lobby .keys");if(kh)kh.insertAdjacentHTML("beforeend"," · <kbd>5</kbd> enxada · <kbd>E</kbd> escola");
+})();
+
+</script>
+<script>
+/* =====================================================================
+   SÍTIO AGROFLORESTA — NOVIDADES v4: carro, moto e música do YouTube
+   ===================================================================== */
+(function(){
+"use strict";
+if(typeof SP==="undefined"||typeof THREE==="undefined")return;
+const W4={drv:null,veh:{},om:{},init:false,v:0,steer:0,vol:LS.get("agro_ytvol",70),playing:false,resume:false,comp:0,compMsg:0};
+const VEH={carro:{n:"Caminhonete",ico:"🛻",vmax:17,acc:7,steer:1.5,coll:1.4,dist:11,len:2.2},moto:{n:"Moto",ico:"🏍️",vmax:14,acc:9,steer:2.1,coll:.6,dist:8,len:.9}};
+const COLORS=[0xb03a2e,0x2e6fb0,0x2e7d4f,0xf2efe6,0x2a2a2a,0xe0a020,0x7a3a9a];
+Object.assign(CONC,{compactacao:{n:"Compactação do solo",ico:"🚜",t:"Pneus e pisoteio apertam a terra: a água não infiltra, as raízes não entram e as minhocas somem. Por isso se anda pelos caminhos e nunca por cima dos canteiros."}});
+
+/* ---------------- estilos e HUD ---------------- */
+const css=document.createElement("style");css.textContent=`
+#v4hud{position:fixed;left:50%;bottom:calc(12px + var(--sb));transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:6px 12px;pointer-events:auto;z-index:9}
+#v4hud b{font:900 24px "Arial Black",sans-serif;min-width:44px;text-align:right}#v4hud .ib{width:38px;height:38px}
+#v4song{max-width:170px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;color:var(--mut)}
+#v4yt{position:fixed;left:calc(10px + var(--sl));bottom:calc(64px + var(--sb));z-index:9;padding:6px;display:none;pointer-events:auto;width:212px}
+#v4yt .t{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;margin-bottom:4px}#v4yt .t span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#v4yt .t button{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:7px;width:26px;height:24px;padding:0;font-size:12px}
+#v4yt iframe{display:block;border-radius:6px}
+body.mob #v4yt{left:50%;transform:translateX(-50%);top:calc(36px + var(--st));bottom:auto;width:172px}
+body.mob #v4hud{bottom:calc(4px + var(--sb));padding:3px 8px;gap:5px}body.mob #v4hud b{font-size:17px;min-width:32px}body.mob #v4hud .ib{width:32px;height:32px;font-size:15px}body.mob #v4song{max-width:90px;font-size:10px}`;
+document.head.appendChild(css);
+const hud=document.createElement("div");hud.id="v4hud";hud.className="pn";
+hud.innerHTML='<b id="v4spd">0</b><small>km/h</small><span id="v4song"></span><button class="ib" id="v4mus" title="Música e cor (M)">🎵</button><button class="ib" id="v4horn" title="Buzina (Espaço)">📯</button><button class="ib" id="v4out" title="Sair (F)">🅿️</button>';
+$("game").appendChild(hud);
+const yt=document.createElement("div");yt.id="v4yt";yt.className="pn";
+yt.innerHTML='<div class="t">🎵<span id="v4ytT">YouTube</span><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytX" title="Fechar">✕</button></div><div id="v4ytP"></div>';
+$("game").appendChild(yt);
+const ov=document.createElement("div");ov.className="ov";ov.id="v4ov";ov.innerHTML='<div class="box"><h3><span>🚗 Painel do veículo</span><button class="x" data-close>✕</button></h3><div id="v4B"></div></div>';
+$("game").appendChild(ov);ov.querySelector("[data-close]").onclick=closeOv;
+
+/* ---------------- modelos ---------------- */
+function vehMesh(t,col){const g=new THREE.Group(),M=(c,r,m)=>mat("vh"+c+"_"+(r||0)+"_"+(m||0),null,{color:c,r:r==null?.5:r,m:m||0}),
+  paint=mat("vhpaint"+col,null,{color:col,r:.35,m:.25,env:1}),glass=mat("vhglass",null,{color:0x1e2a33,r:.1,m:.4,env:1.2}),chrome=M(0xc8ccd0,.25,.85),dark=M(0x222222,.8),
+  lamp=mat("vhlamp",null,{color:0xfff6d8,r:.2,em:0xfff2c0,ei:1.2}),tail=mat("vhtail",null,{color:0xc0201a,r:.3,em:0x801010,ei:1}),wheels=[];
+  const box=(w,h,d,x,y,z,m,rx)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(rx)o.rotation.x=rx;o.castShadow=Q>0;g.add(o);return o};
+  const wheel=(x,y,z,r,w)=>{const wg=new THREE.Group();wg.position.set(x,y,z);const tire=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,16),M(0x1a1a1a,.9));tire.rotation.z=Math.PI/2;tire.castShadow=Q>0;wg.add(tire);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(r*.55,r*.55,w+.02,10),chrome);hub.rotation.z=Math.PI/2;wg.add(hub);const sp=new THREE.Mesh(new THREE.BoxGeometry(w+.05,r*1.5,.07),dark);wg.add(sp);g.add(wg);wheels.push(wg)};
+  if(t==="carro"){box(1.9,.55,4.4,0,.72,0,paint);box(1.75,.68,1.9,0,1.33,-.4,paint);box(1.6,.5,.06,0,1.34,-1.36,glass,-.12);box(1.77,.42,1.4,0,1.38,-.4,glass);box(1.6,.38,.06,0,1.38,.56,glass);
+    for(const s of[-1,1])box(.08,.34,2.1,s*.91,1.16,1.12,paint);box(1.9,.34,.08,0,1.16,2.17,paint);
+    const wood=mat("v_wood");box(.55,.32,.42,-.42,1.15,1.05,wood);box(.55,.32,.42,.3,1.15,1.5,wood);const sack=new THREE.Mesh(new THREE.SphereGeometry(.28,10,8),M(0xd8c090,.95));sack.scale.set(1,.7,1.2);sack.position.set(.35,1.18,.85);g.add(sack);
+    for(const z of[-2.22,2.22])box(1.96,.18,.16,0,.48,z,chrome);box(1,.22,.04,0,.76,-2.21,dark);for(const s of[-1,1]){box(.36,.16,.05,s*.66,.84,-2.21,lamp);box(.26,.16,.05,s*.76,.86,2.21,tail)}
+    for(const s of[-1,1])for(const z of[-1.35,1.4])wheel(s*.95,.4,z,.4,.32)}
+  else{wheel(0,.33,-.72,.33,.13);wheel(0,.33,.7,.33,.13);box(.12,.12,1.05,0,.6,0,dark,.12);box(.34,.24,.48,0,.86,-.24,paint);box(.3,.1,.62,0,.86,.28,M(0x161616,.9));
+    for(const s of[-1,1])box(.05,.62,.05,s*.08,.66,-.6,chrome,.35);box(.72,.04,.04,0,1.04,-.5,chrome);box(.18,.15,.08,0,.92,-.68,lamp);box(.14,.08,.05,0,.8,.62,tail);
+    box(.22,.06,.5,0,.68,.72,paint);const ex=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.7,8),chrome);ex.rotation.x=Math.PI/2;ex.position.set(.2,.42,.3);g.add(ex)}
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(t==="carro"?1.7:.7,16),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.28,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.position.y=.04;sh.scale.set(t==="carro"?.65:.5,1.4,1);g.add(sh);
+  g.userData={wheels,t};return g}
+
+/* ---------------- estacionamento ---------------- */
+const vehKey=()=>"agro_veh_"+FK;
+function defaultPark(t){const p=slotPos(mySlot),gd=gateDir(mySlot),px=-gd.z,pz=gd.x,al=HALF+5,side=t==="carro"?-6:-3.4;return {x:p.x+gd.x*al+px*side,z:p.z+gd.z*al+pz*side,h:Math.atan2(-gd.x,-gd.z)}}
+function saveVeh(){const o={};for(const t in W4.veh){const v=W4.veh[t];o[t]={x:+v.m.position.x.toFixed(2),z:+v.m.position.z.toFixed(2),h:+v.h.toFixed(3),c:v.c}}LS.set(vehKey(),o)}
+function buildVeh(t,keep){const v=W4.veh[t];if(v&&v.m)scene.remove(v.m);const m=vehMesh(t,COLORS[(keep.c||0)%COLORS.length]);m.position.set(keep.x,groundY(keep.x,keep.z),keep.z);m.rotation.y=keep.h;scene.add(m);
+  const coll=v?v.coll:{x:keep.x,z:keep.z,r:VEH[t].coll};if(!v)COLL.push(coll);W4.veh[t]={t,m,h:keep.h,c:keep.c||0,coll};if(W4.drv!==t){coll.x=keep.x;coll.z=keep.z}}
+function initVeh(){const S=LS.get(vehKey(),{});for(const t of ["carro","moto"]){const d=defaultPark(t),s=S[t]&&Math.abs(S[t].x)<80&&Math.abs(S[t].z)<80?S[t]:d;buildVeh(t,{x:s.x,z:s.z,h:s.h==null?d.h:s.h,c:s.c||(t==="carro"?0:4)})}
+  if(Q>0){W4.light=new THREE.SpotLight(0xfff2d0,0,32,.55,.6,1.4);W4.light.castShadow=false;scene.add(W4.light,W4.light.target)}}
+
+/* ---------------- entrar / sair ---------------- */
+function enter(t){const v=W4.veh[t];if(!v)return;W4.drv=t;W4.v=0;W4.steer=0;v.coll.x=1e5;W4.camD=cam.dist;cam.dist=VEH[t].dist;P.x=v.m.position.x;P.z=v.m.position.z;P.yw=v.h;cam.yaw=v.h;
+  if(t==="carro")me.av.visible=false;$("tools").style.display="none";hud.style.display="flex";if(myRef)myRef.update({veh:t});audioOn();engOn();
+  toast(VEH[t].ico+" "+(MOB?"Joystick acelera e vira. Toque em 🅿️ para sair.":"W/S acelera e freia, A/D vira, Espaço buzina, F sai. A música (🎵 ou M) toca para todos."));}
+function leave(){const t=W4.drv;if(!t)return;const v=W4.veh[t],h=v.h,rx=Math.cos(h),rz=-Math.sin(h),off=t==="carro"?1.7:1;W4.drv=null;W4.v=0;
+  let [x,z]=collide(v.m.position.x-rx*off,v.m.position.z-rz*off);P.x=x;P.z=z;P.vx=P.vz=0;v.coll.x=v.m.position.x;v.coll.z=v.m.position.z;
+  me.av.visible=true;const u=me.av.userData;u.body.rotation.x=0;me.av.rotation.z=0;cam.dist=W4.camD||9;$("tools").style.display="";hud.style.display="none";if(W4.light)W4.light.intensity=0;
+  if(myRef)myRef.update({veh:""});engOff();saveVeh()}
+function horn(){if(!soundOn||!ACx)return;tn(415,.35,.13,"square");tn(523,.35,.1,"square")}
+
+/* ---------------- dirigir ---------------- */
+const angD=(a,b)=>((a-b+Math.PI*3)%(Math.PI*2))-Math.PI;
+function drive(dt){const t=W4.drv,D=VEH[t],v=W4.veh[t],m=v.m;let thr=0,st=0;
+  if(!ovOpen()){if(K.KeyW||K.ArrowUp)thr+=1;if(K.KeyS||K.ArrowDown)thr-=1;if(K.KeyA||K.ArrowLeft)st-=1;if(K.KeyD||K.ArrowRight)st+=1;if(jx||jy){thr=-jy;st=jx}}
+  const wet=groundY(m.position.x,m.position.z)<-.1,vmax=D.vmax*(wet?.4:1);
+  if(thr>0)W4.v+=(W4.v<0?D.acc*2.2:D.acc)*thr*dt;else if(thr<0)W4.v+=(W4.v>.3?-D.acc*2.2:-D.acc*.7)*(-thr)*dt;else W4.v-=W4.v*Math.min(1,dt*1.4);
+  W4.v=clamp(W4.v,-5,vmax);if(Math.abs(W4.v)<.05&&!thr)W4.v=0;
+  W4.steer+=(st-W4.steer)*Math.min(1,dt*6);const f=clamp(Math.abs(W4.v)/4,0,1);v.h-=W4.steer*D.steer*f*Math.sign(W4.v||1)*dt;
+  const fx=-Math.sin(v.h),fz=-Math.cos(v.h),qx=m.position.x+fx*W4.v*dt,qz=m.position.z+fz*W4.v*dt,dir=W4.v>=0?1:-1,px=qx+fx*D.len*dir,pz=qz+fz*D.len*dir,[cx,cz]=collide(px,pz);
+  if(Math.hypot(cx-px,cz-pz)>.02){if(Math.abs(W4.v)>6){snd.err();nz(300,.2,.25)}W4.v*=-.25}else{const [x,z]=collide(qx,qz);m.position.x=x;m.position.z=z}
+  m.position.y=groundY(m.position.x,m.position.z);m.rotation.y=v.h;m.rotation.z=t==="moto"?-W4.steer*.32*f:0;
+  for(const w of m.userData.wheels)w.rotation.x-=W4.v*dt/(t==="carro"?.4:.33);
+  P.x=m.position.x;P.z=m.position.z;P.y=m.position.y;P.yw=v.h;P.vx=fx*W4.v;P.vz=fz*W4.v;
+  if(t==="moto")seat(me.av,m);else{me.av.position.set(P.x,P.y,P.z);me.av.rotation.y=v.h}
+  if(!drag&&!Object.keys(looks).length&&Math.abs(W4.v)>1)cam.yaw+=angD(W4.v>0?v.h:v.h+Math.PI,cam.yaw)*Math.min(1,dt*2.2);
+  if(wet&&Math.abs(W4.v)>2&&Math.random()<dt*20)burst(new THREE.Vector3(P.x,.1,P.z),0xbfe4f2,4,{up:2,v:2,sp:1.2,life:.5});
+  else if(Math.abs(W4.v)>9&&Math.random()<dt*6&&!worldCell(P.x,P.z))smoke(new THREE.Vector3(P.x-fx*D.len,.3,P.z-fz*D.len),{size:.8,grow:2,life:1.2,op:.18,col:0xc8b896,vy:.4});
+  $("v4spd").textContent=Math.round(Math.abs(W4.v)*3.6);engTick();
+  if(W4.light){const night=dayF<.45;W4.light.intensity=night?2.2:0;if(night){W4.light.position.set(P.x+fx*1.5,1.1,P.z+fz*1.5);W4.light.target.position.set(P.x+fx*14,0,P.z+fz*14)}}
+  W4.comp+=dt;if(W4.comp>.5&&Math.abs(W4.v)>1.5){W4.comp=0;compact()}}
+function compact(){const w=worldCell(P.x,P.z);if(!w||w.slot!==mySlot||!unlocked(F.size,w.ci))return;const c=F.c[w.ci];c.v=Math.max(0,c.v-.6);c.a=Math.max(0,c.a-1);let hurt=false;
+  for(const k in c.p){const p=c.p[k];if(growth(p)<.35){p.h-=12;hurt=true}}touch(w.ci);const t=performance.now();if(t-W4.compMsg>45000){W4.compMsg=t;toast("🚜 O pneu compacta a terra"+(hurt?" e amassou mudas":"")+"! Dirija pelos caminhos, não nos canteiros.");lesson("compactacao")}}
+function seat(av,m){const u=av.userData,h=m.rotation.y;av.position.set(m.position.x+Math.sin(h)*.12,m.position.y-.1,m.position.z+Math.cos(h)*.12);av.rotation.y=h;av.rotation.z=m.rotation.z;
+  u.lL.rotation.x=u.lR.rotation.x=1.05;u.aL.rotation.x=u.aR.rotation.x=1.15;u.body.rotation.x=-.28;u.body.position.y=.88}
+
+/* ---------------- som do motor ---------------- */
+function engOn(){if(!ACx||W4.eng)return;try{const o=ACx.createOscillator(),o2=ACx.createOscillator(),f=ACx.createBiquadFilter(),g=ACx.createGain();o.type="sawtooth";o2.type="square";f.type="lowpass";f.frequency.value=520;g.gain.value=0;
+  o.connect(f);o2.connect(f);f.connect(g).connect(MB);o.start();o2.start();W4.eng={o,o2,f,g}}catch(e){}}
+function engTick(){const E=W4.eng;if(!E)return;const D=VEH[W4.drv],r=Math.abs(W4.v)/D.vmax,base=W4.drv==="moto"?58:36,fr=base+r*(W4.drv==="moto"?150:95),t=ACx.currentTime;
+  E.o.frequency.setTargetAtTime(fr,t,.06);E.o2.frequency.setTargetAtTime(fr*.5,t,.06);E.g.gain.setTargetAtTime(soundOn?(.035+.05*r)*(W4.playing?.45:1):0,t,.1)}
+function engOff(){const E=W4.eng;if(!E)return;W4.eng=null;try{E.g.gain.setTargetAtTime(0,ACx.currentTime,.08);setTimeout(()=>{E.o.stop();E.o2.stop()},400)}catch(e){}}
+
+/* ---------------- Som da comunidade (YouTube compartilhado) ---------------- */
+W4.near=LS.get("agro_ytnear",false);W4.mute=LS.get("agro_ytmute",false);W4.cur=null;W4.ready=false;W4.trk=null;
+const musRef=()=>fbOk()&&room?R("rooms/"+room+"/music"):null;
+function ytParse(s){s=String(s||"").trim();let id=null,list=null;try{const u=new URL(/^https?:\/\//i.test(s)?s:"https://"+s),h=u.hostname.replace(/^(www|m|music)\./,"");
+  if(h==="youtu.be")id=u.pathname.slice(1).split("/")[0];else if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){id=u.searchParams.get("v");const mm=u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);if(!id&&mm)id=mm[2]}
+  list=u.searchParams.get("list")}catch(e){}if(!id&&/^[\w-]{11}$/.test(s))id=s;if(id&&!/^[\w-]{11}$/.test(id))id=null;if(list&&!/^[\w-]{10,64}$/.test(list))list=null;return id||list?{id,list}:null}
+function ytLoad(){if(window.YT&&YT.Player)return Promise.resolve();return new Promise((res,rej)=>{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev()}catch(e){}res()};
+  if(!$("v4ytapi")){const s=document.createElement("script");s.id="v4ytapi";s.src="https://www.youtube.com/iframe_api";s.onerror=rej;document.head.appendChild(s)}setTimeout(()=>rej("timeout"),12000)})}
+function ytSave(url,t){const old=LS.get("agro_yt",[]),prev=old.find(x=>x.url===url),R_=old.filter(x=>x.url!==url);R_.unshift({url,t:t||(prev&&prev.t)||""});LS.set("agro_yt",R_.slice(0,6))}
+const elapsed=S=>S.paused?(S.pausedAt||0):Math.max(0,(nowMs()-(S.t0||nowMs()))/1000);
+function sourcePos(uid){if(uid===me.uid)return [P.x,P.z];for(const id in others){const o=others[id];if(o.uid===uid&&o.av)return [o.rx,o.rz]}return null}
+function localVol(){if(W4.mute)return 0;let v=W4.vol;if(W4.near&&W4.cur){const s=sourcePos(W4.cur.uid);if(s)v*=clamp(1.15-Math.hypot(P.x-s[0],P.z-s[1])/50,0,1)}return Math.round(v)}
+function updSong(){const S=W4.cur;$("v4song").textContent=S&&S.url?(S.paused?"⏸ ":"🎵 ")+(S.title||"YouTube"):"";$("v4ytT").textContent=S&&S.url?(S.title||"Carregando…")+(S.by?" · "+S.by:""):"";
+  $("v4ytPP").textContent=S&&S.paused?"▶️":"⏸";$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
+function onState(e){W4.playing=e.data===1;const S=W4.cur,p=W4.player;if(e.data!==1||!S)return;try{const d=p.getVideoData(),r=musRef();
+  if(d&&d.title){if(S.url)ytSave(S.url,d.title);if(r&&S.title!==d.title&&(S.uid===me.uid||!S.title))r.update({title:d.title})}
+  const P_=ytParse(S.url);if(P_&&P_.list&&S.uid===me.uid&&r){const idx=p.getPlaylistIndex();if(idx>=0&&idx!==(S.idx||0))r.update({idx,t0:nowMs()-p.getCurrentTime()*1000,title:d&&d.title||""})}}catch(err){}}
+function onErr(e){toast([101,150].includes(e.data)?"🎵 Esse vídeo não permite tocar fora do YouTube. Tente outro.":"🎵 Não foi possível tocar esse vídeo.");W4.playing=false}
+async function apply(S){W4.cur=S&&S.url?S:null;updSong();
+  if(!W4.cur){try{W4.player&&W4.ready&&W4.player.stopVideo()}catch(e){}W4.playing=false;W4.trk=null;yt.style.display="none";return}
+  if(!ytParse(S.url))return;yt.style.display="block";
+  try{await ytLoad()}catch(e){toast("Não consegui carregar o YouTube (sem internet ou bloqueado).");return}
+  if(W4.cur!==S)return;
+  if(!W4.player){const P_=ytParse(S.url),el=elapsed(S);W4.trk=S.url+"|"+(S.idx||0);
+    W4.player=new YT.Player("v4ytP",{width:MOB?160:200,height:MOB?90:113,videoId:P_.id||undefined,
+      playerVars:Object.assign({autoplay:S.paused?0:1,playsinline:1,rel:0,modestbranding:1,start:Math.floor(el)},P_.list?{list:P_.list,listType:"playlist",index:S.idx||0}:{}),
+      events:{onReady:e=>{W4.ready=true;e.target.setVolume(localVol());sync()},onStateChange:onState,onError:onErr}});kick();return}
+  sync()}
+function kick(){const S=W4.cur;clearTimeout(W4.kickT);W4.kickT=setTimeout(()=>{const p=W4.player;if(!W4.cur||W4.cur!==S||S.paused||!p||!W4.ready)return;try{if(p.getPlayerState()!==1)toast("🎵 Toque em ▶️ no mini-player para ouvir a música da comunidade")}catch(e){}},5000)}
+function sync(){const S=W4.cur,p=W4.player;if(!S||!p||!W4.ready)return;const P_=ytParse(S.url);if(!P_)return;const trk=S.url+"|"+(S.idx||0),el=elapsed(S);
+  try{p.setVolume(localVol());if(W4.trk!==trk){W4.trk=trk;if(P_.list)p.loadPlaylist({list:P_.list,listType:"playlist",index:S.idx||0,startSeconds:el});else p.loadVideoById({videoId:P_.id,startSeconds:el});
+      if(S.paused)setTimeout(()=>{try{p.pauseVideo()}catch(e){}},700);else kick();return}
+    const st=p.getPlayerState();if(S.paused){if(st===1||st===3)p.pauseVideo();return}if(st===0)return;if(st!==1&&st!==3)p.playVideo();
+    const same=!P_.list||p.getPlaylistIndex()===(S.idx||0),ct=p.getCurrentTime();if(same&&st===1&&Math.abs(ct-el)>4)p.seekTo(el,true)}catch(e){}}
+function setMusic(url){if(!ytParse(url)){toast("Link do YouTube inválido. Cole o endereço de um vídeo ou playlist.");return}ytSave(url);
+  const S={url,uid:me.uid,by:me.n,t0:nowMs(),paused:false,pausedAt:0,idx:0,title:"",pb:""},r=musRef();if(r)r.set(S);else apply(S);audioOn()}
+function togglePause(){const S=W4.cur;if(!S)return;const N=S.paused?{paused:false,t0:nowMs()-(S.pausedAt||0)*1000,pausedAt:0,pb:me.n}:{paused:true,pausedAt:elapsed(S),pb:me.n},r=musRef();
+  if(r)r.update(N);else apply(Object.assign({},S,N))}
+function stopMusic(){const r=musRef();if(r){r.remove();feed(me.n+" parou a música ⏹")}else apply(null)}
+function listenMusic(){const r=musRef();if(!r){W4.listen=true;return}W4.listen=true;let first=true;
+  r.on("value",s=>{const S=s.val(),prev=W4.cur;if(!first&&S&&S.url){if(!prev||prev.url!==S.url||(S.idx||0)!==(prev.idx||0)&&S.uid!==me.uid){if(S.uid!==me.uid&&(!prev||prev.url!==S.url))toast("🎵 "+S.by+" colocou uma música para a comunidade")}
+      else if(prev&&prev.paused!==S.paused&&S.pb&&S.pb!==me.n)toast(S.paused?"⏸ "+S.pb+" pausou a música":"▶️ "+S.pb+" voltou a tocar a música")}
+    else if(!first&&!S&&prev)toast("⏹ A música da comunidade parou");first=false;apply(S);if($("v4ov").style.display==="flex")openPanel()})}
+yt.querySelector(".t").insertAdjacentHTML("beforeend",'<button id="v4ytS" title="Parar para todos">⏹</button><button id="v4ytM" title="Silenciar só para mim">🔇</button>');
+$("v4ytX").remove();
+$("v4ytPP").onclick=togglePause;$("v4ytS").onclick=stopMusic;$("v4ytM").onclick=()=>{W4.mute=!W4.mute;LS.set("agro_ytmute",W4.mute);sync();updSong();toast(W4.mute?"🔇 Música silenciada só para você":"🔊 Música de volta")};
+
+/* ---------------- painel: música e veículo ---------------- */
+function openPanel(){const t=W4.drv,v=t&&W4.veh[t],R_=LS.get("agro_yt",[]),S=W4.cur;openOv("v4ov");ov.querySelector("h3 span").textContent="🎵 Som da comunidade";
+  $("v4B").innerHTML=`<p style="margin-top:0;font-size:13px">Todos na comunidade ouvem a mesma música, dentro ou fora do carro e da moto. Qualquer pessoa pode colocar, pausar ou parar.</p>
+    <div class="card" style="margin-bottom:8px">${S?`<b>${S.paused?"⏸ Pausada":"🎵 Tocando agora"}: ${esc(S.title||"YouTube")}</b><div style="font-size:12px;color:var(--mut)">colocada por ${esc(S.by||"?")}</div><div class="row" style="margin:6px 0 0"><button class="mb" id="v4pp">${S.paused?"▶️ Continuar":"⏸ Pausar"}</button><button class="mb" id="v4st">⏹ Parar para todos</button></div>`:"<b>Nenhuma música tocando.</b>"}</div>
+    <label>Colocar música do YouTube</label><div class="row" style="margin:0;align-items:center"><input type="text" id="v4url" placeholder="Cole o link de um vídeo ou playlist do YouTube" style="flex:3"><button class="mb pri" id="v4go" style="flex:1">▶️ Tocar</button></div>
+    ${R_.length?`<label>Tocadas recentemente</label><div class="row" style="margin:0">${R_.map((r,i)=>`<button class="qb" data-r="${i}" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🎵 ${esc(r.t||r.url)}</button>`).join("")}</div>`:""}
+    <label>Meu volume: <span id="v4vv">${W4.vol}</span></label><input type="range" id="v4vol" min="0" max="100" value="${W4.vol}" style="width:100%">
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4mute" ${W4.mute?"checked":""} style="width:18px;height:18px"> 🔇 Silenciar só para mim</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4near" ${W4.near?"checked":""} style="width:18px;height:18px"> 📍 Volume pela distância (mais alto perto de quem colocou a música)</label>
+    <p style="font-size:12px;color:var(--mut)">${fbOk()?"":"⚠️ Sem conexão: a música toca só neste aparelho. "}Alguns vídeos não deixam tocar fora do YouTube; se acontecer, tente outro link.</p>
+    ${v?`<label>🎨 Cor da ${t==="carro"?"caminhonete":"moto"}</label><div class="row" style="margin:0">${COLORS.map((c,i)=>`<button class="sw" data-c="${i}" aria-pressed="${i===v.c}" style="background:#${c.toString(16).padStart(6,"0")}"></button>`).join("")}</div>`:""}`;
+  const inp=$("v4url");inp.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Enter")$("v4go").click()});
+  $("v4go").onclick=()=>{setMusic(inp.value);closeOv()};
+  $("v4B").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{setMusic(R_[+b.dataset.r].url);closeOv()});
+  const pp=$("v4pp");if(pp)pp.onclick=()=>{togglePause();closeOv()};const st=$("v4st");if(st)st.onclick=()=>{stopMusic();closeOv()};
+  $("v4vol").oninput=e=>{W4.vol=+e.target.value;$("v4vv").textContent=W4.vol;LS.set("agro_ytvol",W4.vol);sync()};
+  $("v4mute").onchange=e=>{W4.mute=e.target.checked;LS.set("agro_ytmute",W4.mute);sync();updSong()};
+  $("v4near").onchange=e=>{W4.near=e.target.checked;LS.set("agro_ytnear",W4.near);sync()};
+  if(v)$("v4B").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const m=v.m;buildVeh(t,{x:m.position.x,z:m.position.z,h:v.h,c:+b.dataset.c});saveVeh();openPanel()})}
+$("v4mus").onclick=openPanel;$("v4horn").onclick=horn;$("v4out").onclick=()=>leave();
+{const b=document.createElement("button");b.className="ib";b.id="bMus";b.title="Som da comunidade (M)";b.textContent="🎵";$("topb").insertBefore(b,$("bMenu"));b.onclick=openPanel}
+setInterval(()=>{if(W4.cur&&W4.player&&W4.ready)sync()},2000);
+
+/* ---------------- ganchos no jogo ---------------- */
+const oMove=movePlayer;movePlayer=function(dt){if(W4.drv&&W4.veh[W4.drv])return drive(dt);oMove(dt)};
+const oDo=doAction;doAction=function(){if(W4.drv)return horn();oDo()};
+const oIT=interactTick;
+interactTick=function(){oIT();try{let k=null,txt="";if(W4.drv){k="v4out";txt="🅿️ Sair da "+(W4.drv==="carro"?"caminhonete":"moto")}
+  else for(const t in W4.veh){const m=W4.veh[t].m;if(Math.hypot(P.x-m.position.x,P.z-m.position.z)<(t==="carro"?2.9:1.8)){k="v4:"+t;txt=VEH[t].ico+" Dirigir a "+(t==="carro"?"caminhonete":"moto");break}}
+  if(k){iaKind=k;$("ia").style.display="block";$("ia").textContent=(MOB?"":"F: ")+txt;$("bTalk").style.display="flex"}}catch(e){}};
+const oIn=interact;interact=function(){if(iaKind==="v4out")return leave();if(typeof iaKind==="string"&&iaKind.startsWith("v4:"))return enter(iaKind.slice(3));oIn()};
+const oNS=netState;netState=function(){const s=oNS();s.veh=W4.drv||"";s.vc=W4.drv&&W4.veh[W4.drv]?W4.veh[W4.drv].c:0;return s};
+const oOT=othersTick;
+othersTick=function(dt){oOT(dt);try{for(const id in others){const o=others[id];if(!o.av)continue;const want=o.veh||"",key=want+(o.vc||0);
+    if(key!==(o.vehK||"")){if(W4.om[id])scene.remove(W4.om[id]);W4.om[id]=want&&VEH[want]?vehMesh(want,COLORS[(o.vc||0)%COLORS.length]):null;if(W4.om[id])scene.add(W4.om[id]);o.vehK=key;o.av.visible=true;o.av.rotation.z=0}
+    const m=W4.om[id];if(!m)continue;const px=m.position.x,pz=m.position.z;m.position.set(o.rx,groundY(o.rx,o.rz),o.rz);m.rotation.y=o.yw||0;const sp=Math.hypot(o.rx-px,o.rz-pz)/Math.max(dt,.001);
+    for(const w of m.userData.wheels)w.rotation.x-=sp*dt/.38;if(want==="carro")o.av.visible=false;else{o.av.visible=true;seat(o.av,m)}}
+  for(const id in W4.om)if(!others[id]){if(W4.om[id])scene.remove(W4.om[id]);delete W4.om[id]}}catch(e){}};
+const oT2=tick2;tick2=function(dt,t){oT2(dt,t);if(!running||!F||!scene||mySlot<0)return;if(!W4.init){W4.init=true;try{initVeh()}catch(e){console.error("v4",e)}try{listenMusic()}catch(e){console.error("v4m",e)}}};
+addEventListener("keydown",e=>{if(!running||document.activeElement.tagName==="INPUT")return;if(e.code==="KeyM"&&!ovOpen())openPanel()});
+const kh=document.querySelector("#lobby .keys");if(kh)kh.insertAdjacentHTML("beforeend"," · <kbd>F</kbd> perto do 🛻 dirige · <kbd>M</kbd> música da comunidade");
 })();
 
 </script>
