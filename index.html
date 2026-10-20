@@ -2128,18 +2128,19 @@ const css=document.createElement("style");css.textContent=`
 #v4hud b{font:900 24px "Arial Black",sans-serif;min-width:44px;text-align:right}#v4hud .ib{width:38px;height:38px}
 #v4song{max-width:170px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;color:var(--mut)}
 #v4yt{position:fixed;right:calc(10px + var(--sr));top:calc(100px + var(--st));z-index:8;padding:5px 6px;display:none;pointer-events:auto;align-items:center;gap:7px;max-width:310px}
-#v4ytV{width:96px;height:54px;border-radius:6px;overflow:hidden;flex:0 0 auto;background:#000}#v4yt.big #v4ytV{width:240px;height:135px}
+#v4ytV{width:2px;height:2px;opacity:.01;overflow:hidden;flex:0 0 auto;pointer-events:none}#v4yt.big #v4ytV{width:240px;height:135px;opacity:1;border-radius:6px;background:#000;pointer-events:auto}
+#v4eq{display:flex;align-items:flex-end;gap:2px;height:22px;width:26px;flex:0 0 auto}#v4eq i{display:block;width:4px;background:var(--ac);border-radius:2px;height:30%;animation:v4eq .9s ease-in-out infinite}#v4eq i:nth-child(2){animation-delay:.2s}#v4eq i:nth-child(3){animation-delay:.45s}#v4eq i:nth-child(4){animation-delay:.1s}#v4yt.paused #v4eq i{animation:none;height:25%}#v4yt.big #v4eq{display:none}@keyframes v4eq{50%{height:100%}}
 #v4yt iframe{display:block;width:100%!important;height:100%!important}
 #v4yt .t{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:11px;font-weight:700}#v4yt .t span{max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #v4yt .c{display:flex;gap:3px}#v4yt .c button,#v4hud .sm{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:7px;width:27px;height:25px;padding:0;font-size:12px}
-body.mob #v4yt{right:auto;left:50%;transform:translateX(-50%);top:calc(70px + var(--st));padding:3px 4px;gap:5px}body.mob #v4ytV{width:72px;height:40px}body.mob #v4yt.big #v4ytV{width:176px;height:99px}body.mob #v4yt .t span{max-width:96px;font-size:10px}
+body.mob #v4yt{right:auto;left:50%;transform:translateX(-50%);top:calc(70px + var(--st));padding:3px 4px;gap:5px}body.mob #v4yt.big #v4ytV{width:176px;height:99px}body.mob #v4yt .t span{max-width:96px;font-size:10px}
 body.mob #v4hud{bottom:calc(4px + var(--sb));padding:3px 8px;gap:5px}body.mob #v4hud b{font-size:17px;min-width:32px}body.mob #v4hud .ib{width:32px;height:32px;font-size:15px}body.mob #v4song{max-width:90px;font-size:10px}`;
 document.head.appendChild(css);
 const hud=document.createElement("div");hud.id="v4hud";hud.className="pn";
 hud.innerHTML='<b id="v4spd">0</b><small>km/h</small><span id="v4song"></span><button class="sm" id="v4hpp" title="Tocar/pausar">⏯</button><button class="sm" id="v4hnx" title="Próxima">⏭</button><button class="ib" id="v4mus" title="Música e cor (M)">🎵</button><button class="ib" id="v4horn" title="Buzina (Espaço)">📯</button><button class="ib" id="v4out" title="Sair (F)">🅿️</button>';
 $("game").appendChild(hud);
 const yt=document.createElement("div");yt.id="v4yt";yt.className="pn";
-yt.innerHTML='<div id="v4ytV"><div id="v4ytP"></div></div><div class="t"><span id="v4ytT">YouTube</span><div class="c"><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytNx" title="Próxima (playlist)">⏭</button><button id="v4ytX" title="Fechar">✕</button><button id="v4ytBig" title="Mostrar o vídeo maior">📺</button></div></div>';
+yt.innerHTML='<div id="v4eq"><i></i><i></i><i></i><i></i></div><div id="v4ytV"><div id="v4ytP"></div></div><div class="t"><span id="v4ytT">YouTube</span><div class="c"><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytNx" title="Próxima (playlist)">⏭</button><button id="v4ytX" title="Fechar">✕</button><button id="v4ytBig" title="Mostrar o vídeo">📺</button></div></div>';
 $("game").appendChild(yt);
 const ov=document.createElement("div");ov.className="ov";ov.id="v4ov";ov.innerHTML='<div class="box"><h3><span>🚗 Painel do veículo</span><button class="x" data-close>✕</button></h3><div id="v4B"></div></div>';
 $("game").appendChild(ov);ov.querySelector("[data-close]").onclick=closeOv;
@@ -2230,7 +2231,7 @@ function sourcePos(uid){if(uid===me.uid)return [P.x,P.z];for(const id in others)
 function localVol(){if(W4.mute)return 0;let v=W4.vol;if(W4.cur&&W4.cur.uid!==me.uid){const s=sourcePos(W4.cur.uid);v*=s?clamp(1.25-Math.hypot(P.x-s[0],P.z-s[1])/28,0,1):0}return Math.round(v)}
 function updSong(){const S=W4.cur;$("v4song").textContent=S&&S.url?(S.paused?"⏸ ":"🎵 ")+(S.title||"YouTube"):"";$("v4ytT").textContent=S&&S.url?(S.title||"Carregando…")+(S.uid!==me.uid?" · som de "+(S.by||"?")+" 📍":""):"";
   for(const id of ["v4ytPP","v4ytNx","v4ytS","v4hpp","v4hnx"]){const b=$(id);if(b){b.disabled=!!S&&S.uid!==me.uid;b.style.opacity=b.disabled?.35:1}}
-  $("v4ytPP").textContent=$("v4hpp").textContent=S&&S.paused?"▶️":"⏸";$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
+  $("v4ytPP").textContent=$("v4hpp").textContent=S&&S.paused?"▶️":"⏸";yt.classList.toggle("paused",!(S&&S.url&&!S.paused));$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
 function onState(e){W4.playing=e.data===1;const S=W4.cur,p=W4.player;if(e.data!==1||!S)return;try{const d=p.getVideoData(),r=musRef();
   if(S.uid!==me.uid)return;if(d&&d.title){if(S.url)ytSave(S.url,d.title);if(r&&S.title!==d.title)r.update({title:d.title})}
   const P_=ytParse(S.url);if(P_&&P_.list&&S.uid===me.uid&&r){const idx=p.getPlaylistIndex();if(idx>=0&&idx!==(S.idx||0))r.update({idx,t0:nowMs()-p.getCurrentTime()*1000,title:d&&d.title||""})}}catch(err){}}
@@ -2289,7 +2290,7 @@ function openPanel(){const t=W4.drv,v=t&&W4.veh[t],R_=LS.get(pk("agro_yt"),[]),S
 
 function nextTrack(d){const S=W4.cur;if(!S||notMine())return;const P_=ytParse(S.url);if(!P_||!P_.list){toast("⏭ Próxima só funciona com playlist do YouTube");return}const idx=Math.max(0,(S.idx||0)+d),r=musRef(),N={idx,t0:nowMs(),paused:false,pausedAt:0,title:"",pb:me.n};if(r)r.update(N);else apply(Object.assign({},S,N))}
 $("v4ytNx").onclick=()=>nextTrack(1);$("v4hnx").onclick=()=>nextTrack(1);$("v4hpp").onclick=togglePause;
-$("v4ytBig").onclick=()=>{yt.classList.toggle("big");$("v4ytBig").textContent=yt.classList.contains("big")?"🔽":"📺"};
+$("v4ytBig").onclick=()=>{yt.classList.toggle("big");$("v4ytBig").textContent=yt.classList.contains("big")?"🔽":"📺";$("v4ytBig").title=yt.classList.contains("big")?"Esconder o vídeo":"Mostrar o vídeo"};
 $("v4mus").onclick=openPanel;$("v4horn").onclick=horn;$("v4out").onclick=()=>leave();
 {const b=document.createElement("button");b.className="ib";b.id="bMus";b.title="Meu som (M)";b.textContent="🎵";$("topb").insertBefore(b,$("bMenu"));b.onclick=openPanel}
 setInterval(()=>{if(W4.listen)pick();if(W4.cur&&W4.player&&W4.ready)sync()},1500);
