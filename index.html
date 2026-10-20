@@ -2100,18 +2100,19 @@ const css=document.createElement("style");css.textContent=`
 #v4hud{position:fixed;left:50%;bottom:calc(12px + var(--sb));transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:6px 12px;pointer-events:auto;z-index:9}
 #v4hud b{font:900 24px "Arial Black",sans-serif;min-width:44px;text-align:right}#v4hud .ib{width:38px;height:38px}
 #v4song{max-width:170px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;color:var(--mut)}
-#v4yt{position:fixed;left:calc(10px + var(--sl));bottom:calc(64px + var(--sb));z-index:9;padding:6px;display:none;pointer-events:auto;width:212px}
-#v4yt .t{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;margin-bottom:4px}#v4yt .t span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-#v4yt .t button{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:7px;width:26px;height:24px;padding:0;font-size:12px}
-#v4yt iframe{display:block;border-radius:6px}
-body.mob #v4yt{left:50%;transform:translateX(-50%);top:calc(36px + var(--st));bottom:auto;width:172px}
+#v4yt{position:fixed;right:calc(10px + var(--sr));top:calc(100px + var(--st));z-index:8;padding:5px 6px;display:none;pointer-events:auto;align-items:center;gap:7px;max-width:310px}
+#v4ytV{width:96px;height:54px;border-radius:6px;overflow:hidden;flex:0 0 auto;background:#000}#v4yt.big #v4ytV{width:240px;height:135px}
+#v4yt iframe{display:block;width:100%!important;height:100%!important}
+#v4yt .t{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:11px;font-weight:700}#v4yt .t span{max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#v4yt .c{display:flex;gap:3px}#v4yt .c button,#v4hud .sm{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:7px;width:27px;height:25px;padding:0;font-size:12px}
+body.mob #v4yt{right:auto;left:50%;transform:translateX(-50%);top:calc(70px + var(--st));padding:3px 4px;gap:5px}body.mob #v4ytV{width:72px;height:40px}body.mob #v4yt.big #v4ytV{width:176px;height:99px}body.mob #v4yt .t span{max-width:96px;font-size:10px}
 body.mob #v4hud{bottom:calc(4px + var(--sb));padding:3px 8px;gap:5px}body.mob #v4hud b{font-size:17px;min-width:32px}body.mob #v4hud .ib{width:32px;height:32px;font-size:15px}body.mob #v4song{max-width:90px;font-size:10px}`;
 document.head.appendChild(css);
 const hud=document.createElement("div");hud.id="v4hud";hud.className="pn";
-hud.innerHTML='<b id="v4spd">0</b><small>km/h</small><span id="v4song"></span><button class="ib" id="v4mus" title="Música e cor (M)">🎵</button><button class="ib" id="v4horn" title="Buzina (Espaço)">📯</button><button class="ib" id="v4out" title="Sair (F)">🅿️</button>';
+hud.innerHTML='<b id="v4spd">0</b><small>km/h</small><span id="v4song"></span><button class="sm" id="v4hpp" title="Tocar/pausar">⏯</button><button class="sm" id="v4hnx" title="Próxima">⏭</button><button class="ib" id="v4mus" title="Música e cor (M)">🎵</button><button class="ib" id="v4horn" title="Buzina (Espaço)">📯</button><button class="ib" id="v4out" title="Sair (F)">🅿️</button>';
 $("game").appendChild(hud);
 const yt=document.createElement("div");yt.id="v4yt";yt.className="pn";
-yt.innerHTML='<div class="t">🎵<span id="v4ytT">YouTube</span><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytX" title="Fechar">✕</button></div><div id="v4ytP"></div>';
+yt.innerHTML='<div id="v4ytV"><div id="v4ytP"></div></div><div class="t"><span id="v4ytT">YouTube</span><div class="c"><button id="v4ytPP" title="Tocar/pausar">⏯</button><button id="v4ytNx" title="Próxima (playlist)">⏭</button><button id="v4ytX" title="Fechar">✕</button><button id="v4ytBig" title="Mostrar o vídeo maior">📺</button></div></div>';
 $("game").appendChild(yt);
 const ov=document.createElement("div");ov.className="ov";ov.id="v4ov";ov.innerHTML='<div class="box"><h3><span>🚗 Painel do veículo</span><button class="x" data-close>✕</button></h3><div id="v4B"></div></div>';
 $("game").appendChild(ov);ov.querySelector("[data-close]").onclick=closeOv;
@@ -2198,18 +2199,18 @@ const elapsed=S=>S.paused?(S.pausedAt||0):Math.max(0,(nowMs()-(S.t0||nowMs()))/1
 function sourcePos(uid){if(uid===me.uid)return [P.x,P.z];for(const id in others){const o=others[id];if(o.uid===uid&&o.av)return [o.rx,o.rz]}return null}
 function localVol(){if(W4.mute)return 0;let v=W4.vol;if(W4.near&&W4.cur){const s=sourcePos(W4.cur.uid);if(s)v*=clamp(1.15-Math.hypot(P.x-s[0],P.z-s[1])/50,0,1)}return Math.round(v)}
 function updSong(){const S=W4.cur;$("v4song").textContent=S&&S.url?(S.paused?"⏸ ":"🎵 ")+(S.title||"YouTube"):"";$("v4ytT").textContent=S&&S.url?(S.title||"Carregando…")+(S.by?" · "+S.by:""):"";
-  $("v4ytPP").textContent=S&&S.paused?"▶️":"⏸";$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
+  $("v4ytPP").textContent=$("v4hpp").textContent=S&&S.paused?"▶️":"⏸";$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
 function onState(e){W4.playing=e.data===1;const S=W4.cur,p=W4.player;if(e.data!==1||!S)return;try{const d=p.getVideoData(),r=musRef();
   if(d&&d.title){if(S.url)ytSave(S.url,d.title);if(r&&S.title!==d.title&&(S.uid===me.uid||!S.title))r.update({title:d.title})}
   const P_=ytParse(S.url);if(P_&&P_.list&&S.uid===me.uid&&r){const idx=p.getPlaylistIndex();if(idx>=0&&idx!==(S.idx||0))r.update({idx,t0:nowMs()-p.getCurrentTime()*1000,title:d&&d.title||""})}}catch(err){}}
 function onErr(e){toast([101,150].includes(e.data)?"🎵 Esse vídeo não permite tocar fora do YouTube. Tente outro.":"🎵 Não foi possível tocar esse vídeo.");W4.playing=false}
 async function apply(S){W4.cur=S&&S.url?S:null;updSong();
   if(!W4.cur){try{W4.player&&W4.ready&&W4.player.stopVideo()}catch(e){}W4.playing=false;W4.trk=null;yt.style.display="none";return}
-  if(!ytParse(S.url))return;yt.style.display="block";
+  if(!ytParse(S.url))return;yt.style.display="flex";
   try{await ytLoad()}catch(e){toast("Não consegui carregar o YouTube (sem internet ou bloqueado).");return}
   if(W4.cur!==S)return;
   if(!W4.player){const P_=ytParse(S.url),el=elapsed(S);W4.trk=S.url+"|"+(S.idx||0);
-    W4.player=new YT.Player("v4ytP",{width:MOB?160:200,height:MOB?90:113,videoId:P_.id||undefined,
+    W4.player=new YT.Player("v4ytP",{width:96,height:54,videoId:P_.id||undefined,
       playerVars:Object.assign({autoplay:S.paused?0:1,playsinline:1,rel:0,modestbranding:1,start:Math.floor(el)},P_.list?{list:P_.list,listType:"playlist",index:S.idx||0}:{}),
       events:{onReady:e=>{W4.ready=true;e.target.setVolume(localVol());sync()},onStateChange:onState,onError:onErr}});kick();return}
   sync()}
@@ -2228,7 +2229,7 @@ function listenMusic(){const r=musRef();if(!r){W4.listen=true;return}W4.listen=t
   r.on("value",s=>{const S=s.val(),prev=W4.cur;if(!first&&S&&S.url){if(!prev||prev.url!==S.url||(S.idx||0)!==(prev.idx||0)&&S.uid!==me.uid){if(S.uid!==me.uid&&(!prev||prev.url!==S.url))toast("🎵 "+S.by+" colocou uma música para a comunidade")}
       else if(prev&&prev.paused!==S.paused&&S.pb&&S.pb!==me.n)toast(S.paused?"⏸ "+S.pb+" pausou a música":"▶️ "+S.pb+" voltou a tocar a música")}
     else if(!first&&!S&&prev)toast("⏹ A música da comunidade parou");first=false;apply(S);if($("v4ov").style.display==="flex")openPanel()})}
-yt.querySelector(".t").insertAdjacentHTML("beforeend",'<button id="v4ytS" title="Parar para todos">⏹</button><button id="v4ytM" title="Silenciar só para mim">🔇</button>');
+yt.querySelector(".c").insertAdjacentHTML("beforeend",'<button id="v4ytS" title="Parar para todos">⏹</button><button id="v4ytM" title="Silenciar só para mim">🔇</button>');
 $("v4ytX").remove();
 $("v4ytPP").onclick=togglePause;$("v4ytS").onclick=stopMusic;$("v4ytM").onclick=()=>{W4.mute=!W4.mute;LS.set("agro_ytmute",W4.mute);sync();updSong();toast(W4.mute?"🔇 Música silenciada só para você":"🔊 Música de volta")};
 
@@ -2251,6 +2252,10 @@ function openPanel(){const t=W4.drv,v=t&&W4.veh[t],R_=LS.get("agro_yt",[]),S=W4.
   $("v4mute").onchange=e=>{W4.mute=e.target.checked;LS.set("agro_ytmute",W4.mute);sync();updSong()};
   $("v4near").onchange=e=>{W4.near=e.target.checked;LS.set("agro_ytnear",W4.near);sync()};
   if(v)$("v4B").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const m=v.m;buildVeh(t,{x:m.position.x,z:m.position.z,h:v.h,c:+b.dataset.c});saveVeh();openPanel()})}
+
+function nextTrack(d){const S=W4.cur;if(!S)return;const P_=ytParse(S.url);if(!P_||!P_.list){toast("⏭ Próxima só funciona com playlist do YouTube");return}const idx=Math.max(0,(S.idx||0)+d),r=musRef(),N={idx,t0:nowMs(),paused:false,pausedAt:0,title:"",pb:me.n};if(r)r.update(N);else apply(Object.assign({},S,N))}
+$("v4ytNx").onclick=()=>nextTrack(1);$("v4hnx").onclick=()=>nextTrack(1);$("v4hpp").onclick=togglePause;
+$("v4ytBig").onclick=()=>{yt.classList.toggle("big");$("v4ytBig").textContent=yt.classList.contains("big")?"🔽":"📺"};
 $("v4mus").onclick=openPanel;$("v4horn").onclick=horn;$("v4out").onclick=()=>leave();
 {const b=document.createElement("button");b.className="ib";b.id="bMus";b.title="Som da comunidade (M)";b.textContent="🎵";$("topb").insertBefore(b,$("bMenu"));b.onclick=openPanel}
 setInterval(()=>{if(W4.cur&&W4.player&&W4.ready)sync()},2000);
@@ -2273,6 +2278,218 @@ othersTick=function(dt){oOT(dt);try{for(const id in others){const o=others[id];i
 const oT2=tick2;tick2=function(dt,t){oT2(dt,t);if(!running||!F||!scene||mySlot<0)return;if(!W4.init){W4.init=true;try{initVeh()}catch(e){console.error("v4",e)}try{listenMusic()}catch(e){console.error("v4m",e)}}};
 addEventListener("keydown",e=>{if(!running||document.activeElement.tagName==="INPUT")return;if(e.code==="KeyM"&&!ovOpen())openPanel()});
 const kh=document.querySelector("#lobby .keys");if(kh)kh.insertAdjacentHTML("beforeend"," · <kbd>F</kbd> perto do 🛻 dirige · <kbd>M</kbd> música da comunidade");
+})();
+
+</script>
+<script>
+/* =====================================================================
+   SÍTIO AGROFLORESTA — NOVIDADES v5: contas, escolha de modo e PvP em equipe
+   ===================================================================== */
+(function(){
+"use strict";
+if(typeof SP==="undefined"||typeof THREE==="undefined")return;
+const W5={acc:null,lmode:"com",wantMode:"reflor",code:"",inPvp:false,team:"",wet:0,cd:0,balls:[],spotsV:[],rings:{},mine:0,seen:{},paid:{}};
+const PVPM={reflor:{n:"Corrida do reflorestamento",ico:"🌳",dur:240,t:"Os dois times plantam mudas nos pontos de terra degradada 🌱. Regar a muda de um colega também vale ponto."},
+  brigada:{n:"Brigada de incêndio",ico:"🚒",dur:240,t:"Focos de fogo 🔥 aparecem pelo mapa. Apague mais que o outro time. Apagar perto de um colega vale bônus."},
+  balao:{n:"Guerra de balões d'água",ico:"💦",dur:180,t:"Acerte balões no time rival. Quem é molhado fica lento até um colega secar ele (F) ou esperar secar."}};
+const TEAM={red:{n:"Time Ipê",ico:"🔴",c:0xe0503c,css:"#ff7a66"},blue:{n:"Time Rio",ico:"🔵",c:0x3a7ae0,css:"#7ab0ff"}};
+const BIOC={C:"caatinga",A:"atlantica",Z:"amazonia",R:"cerrado"},CBIO={caatinga:"C",atlantica:"A",amazonia:"Z",cerrado:"R"};
+const AL="23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+
+/* ---------------- estilos ---------------- */
+const css=document.createElement("style");css.textContent=`
+#v5log{position:fixed;inset:0;z-index:22;display:none;align-items:center;justify-content:center;overflow:auto;padding:16px;
+  background:radial-gradient(ellipse at 20% 10%,rgba(155,216,90,.22),transparent 55%),radial-gradient(ellipse at 90% 90%,rgba(242,193,75,.15),transparent 50%),linear-gradient(180deg,#1d2b14 0%,#0f160b 75%)}
+#v5log h1{margin:0 0 12px;font:900 34px/1 "Arial Black",Impact,sans-serif;color:#fff}#v5log h1 span{color:var(--ac)}
+input[type=password]{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--txt);font-size:16px;font-family:inherit;outline:none;-webkit-user-select:text;user-select:text}
+input[type=password]:focus{border-color:var(--ac)}
+.v5big{width:100%;margin-top:14px;padding:13px;border:0;border-radius:12px;background:linear-gradient(180deg,#b5ea70,#77b53a);color:#132009;font:900 18px "Arial Black",Impact,sans-serif}
+.v5link{width:100%;margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:10px;background:transparent;font-size:13px;color:var(--mut)}
+#v5err{color:#ff9a8a;font-size:13px;min-height:16px;margin-top:8px}
+.v5chk{display:flex!important;gap:8px;align-items:center;text-transform:none!important;letter-spacing:0!important;font-size:13px!important;color:var(--txt)!important}
+#v5bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}#v5bar b{color:var(--ac)}#v5bar button{margin-left:auto;border:1px solid var(--line);background:rgba(255,255,255,.07);border-radius:8px;padding:5px 9px;font-size:12px}
+.v5modes{display:grid;gap:6px}.v5modes button{text-align:left;border:2px solid var(--line);border-radius:10px;background:rgba(0,0,0,.3);padding:8px;font-size:12px;line-height:1.35}
+.v5modes button b{font-size:13px}.v5modes button[aria-pressed=true]{border-color:var(--ac);background:rgba(155,216,90,.14)}
+#v5code{text-transform:uppercase;letter-spacing:.15em;font-weight:800}
+#v5hud{position:fixed;left:50%;top:calc(8px + var(--st));transform:translateX(-50%);display:none;align-items:center;gap:10px;padding:5px 12px;font-weight:800;font-size:14px;z-index:9;pointer-events:auto}
+#v5hud .sc{font:900 20px "Arial Black",sans-serif}#v5hud button{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:8px;padding:3px 8px;font-size:12px}
+#v5big{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);font:900 46px "Arial Black",sans-serif;color:#fff;text-shadow:0 4px 14px #000;pointer-events:none;z-index:9;display:none;text-align:center}
+body.mob #v5hud{top:calc(4px + var(--st));font-size:11px;gap:6px;padding:3px 8px}body.mob #v5hud .sc{font-size:15px}body.mob #v5big{font-size:30px}
+body.mob .v5modes button{padding:5px;font-size:10.5px}body.mob #v5log h1{font-size:24px}`;
+document.head.appendChild(css);
+
+/* ---------------- contas ---------------- */
+const lg=document.createElement("div");lg.id="v5log";
+lg.innerHTML=`<div class="box" style="width:min(420px,100%)"><h1>Sítio <span>Agrofloresta</span></h1>
+  <div class="tabs" id="v5lt"><button data-lt="in" aria-pressed="true">Entrar</button><button data-lt="new" aria-pressed="false">Criar conta</button></div>
+  <label for="v5u">Usuário</label><input type="text" id="v5u" maxlength="16" autocomplete="username" autocapitalize="off" placeholder="letras, números e _">
+  <label for="v5p">Senha</label><input type="password" id="v5p" maxlength="40" autocomplete="current-password">
+  <div id="v5nf" style="display:none"><label for="v5n">Nome no jogo</label><input type="text" id="v5n" maxlength="14" placeholder="Como os outros vão te ver">
+    <label class="v5chk" id="v5migL"><input type="checkbox" id="v5mig" checked style="width:18px;height:18px"> Trazer o progresso já salvo neste aparelho</label></div>
+  <div id="v5err" role="alert"></div><button class="v5big" id="v5go">ENTRAR</button><button class="v5link" id="v5off">Jogar sem conta (salvo só neste aparelho)</button>
+  <p style="font-size:11px;color:var(--mut);margin:10px 0 0">Cada conta tem o próprio personagem e o próprio sítio, mesmo jogando várias pessoas no mesmo aparelho.</p></div>`;
+document.body.appendChild(lg);
+let ltab="in";
+function setLT(t){ltab=t;$("v5lt").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lt===t));$("v5nf").style.display=t==="new"?"":"none";$("v5go").textContent=t==="new"?"CRIAR CONTA":"ENTRAR";$("v5err").textContent="";
+  $("v5p").autocomplete=t==="new"?"new-password":"current-password";$("v5migL").style.display=LS.get("agro_uid_claimed",false)?"none":""}
+$("v5lt").querySelectorAll("button").forEach(b=>b.onclick=()=>setLT(b.dataset.lt));
+const ukey=u=>String(u||"").trim().toLowerCase().replace(/[^a-z0-9_]/g,"");
+async function hashPw(salt,pw){let t=salt+":"+pw;if(window.crypto&&crypto.subtle){for(let i=0;i<300;i++){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));t=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}return "s"+t}
+  let h=t;for(let i=0;i<300;i++)h=strHash(h+i).toString(36)+strHash(i+h).toString(36);return "f"+h}
+const once=(ref)=>Promise.race([ref.once("value").then(s=>s.val()),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),8000))]);
+async function loginGo(){const err=m=>{$("v5err").textContent=m;$("v5go").disabled=false},key=ukey($("v5u").value),pw=$("v5p").value;
+  if(!db)return err("Sem conexão com o servidor. Use \"Jogar sem conta\".");if(key.length<3)return err("Usuário com pelo menos 3 letras ou números.");if(pw.length<4)return err("Senha com pelo menos 4 caracteres.");
+  $("v5go").disabled=true;$("v5err").textContent="Aguarde…";
+  try{if(ltab==="in"){const v=await once(R("accounts/"+key));if(!v)return err("Usuário não encontrado. Crie uma conta.");if(await hashPw(v.salt,pw)!==v.h)return err("Senha incorreta.");setAcc({u:key,uid:v.uid,n:v.n||key})}
+    else{const n=($("v5n").value.trim()||key).slice(0,14),salt=Math.random().toString(36).slice(2,12),h=await hashPw(salt,pw),mig=$("v5mig").checked&&!LS.get("agro_uid_claimed",false)&&LS.get("agro_uid",null);
+      const uid=mig||("u"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4));let made=false;
+      await R("accounts/"+key).transaction(cur=>{if(cur)return;made=true;return {uid,salt,h,n,ts:Date.now()}});if(!made)return err("Esse usuário já existe. Escolha outro.");
+      if(mig)LS.set("agro_uid_claimed",true);setAcc({u:key,uid,n})}}catch(e){err("Não deu para falar com o servidor ("+(e.message||e)+"). Tente de novo.")}}
+$("v5go").onclick=loginGo;$("v5p").addEventListener("keydown",e=>{if(e.key==="Enter")loginGo()});
+$("v5off").onclick=()=>{W5.acc=null;me.uid=LS.get("agro_uid",me.uid);lg.style.display="none";bar()};
+function setAcc(a){W5.acc=a;LS.set("agro_acc",a);try{sessionStorage.setItem("agro_acc",JSON.stringify(a))}catch(e){}me.uid=a.uid;$("nome").value=a.n;$("v5go").disabled=false;$("v5p").value="";lg.style.display="none";bar()}
+function bar(){let b=$("v5bar");if(!b){b=document.createElement("div");b.id="v5bar";const brand=document.querySelector("#lobby .brand .box");brand.insertBefore(b,brand.firstChild)}
+  b.innerHTML=W5.acc?`👤 Conta: <b>${esc(W5.acc.n)}</b> <small style="color:var(--mut)">(@${esc(W5.acc.u)})</small><button id="v5sw">Trocar conta</button>`:`👤 <span style="color:var(--mut)">Sem conta (só neste aparelho)</span><button id="v5sw">Entrar / criar conta</button>`;
+  $("nome").readOnly=!!W5.acc;$("nome").style.opacity=W5.acc?.75:1;
+  $("v5sw").onclick=()=>{LS.set("agro_acc",null);try{sessionStorage.removeItem("agro_acc")}catch(e){}W5.acc=null;setLT("in");lg.style.display="flex"}}
+(function boot(){let a=null;try{a=JSON.parse(sessionStorage.getItem("agro_acc")||"null")}catch(e){}a=a||LS.get("agro_acc",null);
+  if(a&&a.uid){W5.acc=a;me.uid=a.uid;$("nome").value=a.n;bar()}else{setLT("in");lg.style.display="flex"}})();
+
+/* ---------------- escolha de modo no lobby ---------------- */
+const rbox=document.querySelector("#lobby .lc > .box");
+rbox.insertAdjacentHTML("afterbegin",`<div class="tabs" id="v5mt"><button data-m="com" aria-pressed="true">🌱 Meu sítio (comunidade)</button><button data-m="pvp" aria-pressed="false">⚔️ PvP em equipe</button></div>
+  <div id="v5pvp" style="display:none"><label>Modo PvP (para salas novas)</label><div class="v5modes" id="v5ms">${Object.keys(PVPM).map(k=>`<button data-pm="${k}" aria-pressed="${k===W5.wantMode}"><b>${PVPM[k].ico} ${PVPM[k].n}</b><br>${PVPM[k].t}</button>`).join("")}</div>
+    <label>Sala PvP</label><div class="row" style="margin:0;align-items:center"><button class="mb" id="v5new" style="flex:1">➕ Criar sala</button><input type="text" id="v5code" maxlength="6" placeholder="Código" autocomplete="off" style="flex:1"></div>
+    <div id="v5ci" style="font-size:12px;color:var(--mut);margin-top:6px">Crie uma sala e passe o código para os amigos, ou digite o código que recebeu. O mapa usa o bioma escolhido por quem criou a sala.</div></div>`);
+const salaLbl=document.querySelector('label[for="sala"]');
+function setMode(m){W5.lmode=m;$("v5mt").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m));$("v5pvp").style.display=m==="pvp"?"":"none";
+  $("sala").style.display=salaLbl.style.display=m==="pvp"?"none":"";$("go").textContent=m==="pvp"?"ENTRAR NO PVP":"ENTRAR NO SÍTIO";
+  const bl=$("bios").previousElementSibling;if(bl)bl.textContent=m==="pvp"?"Mapa (bioma) da sala nova":"Escolha o bioma do seu sítio"}
+$("v5mt").querySelectorAll("button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$("v5ms").querySelectorAll("button").forEach(b=>b.onclick=()=>{W5.wantMode=b.dataset.pm;$("v5ms").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+$("v5new").onclick=()=>{let c=CBIO[me.bio]||"C";for(let i=0;i<4;i++)c+=AL[Math.floor(Math.random()*AL.length)];$("v5code").value=c;W5.creating=c;
+  $("v5ci").innerHTML=`Sala criada: <b style="color:var(--gold);font-size:16px;letter-spacing:.15em">${c}</b> · ${PVPM[W5.wantMode].ico} ${PVPM[W5.wantMode].n}. Passe esse código para os amigos e toque em ENTRAR NO PVP.`};
+$("v5code").addEventListener("input",e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"")});
+const oGo=$("go").onclick;
+$("go").onclick=function(){$("lerr").textContent="";if(!W5.acc&&lg.style.display==="flex")return;
+  if(W5.lmode==="pvp"){const c=$("v5code").value.trim().toUpperCase();if(c.length<5||!BIOC[c[0]]){$("lerr").textContent="Crie uma sala ou digite um código válido (ex.: C7K2Q).";return}
+    if(!db){$("lerr").textContent="O PvP precisa de internet.";return}W5.code=c;me.bio=BIOC[c[0]];$("bios").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.b===me.bio));$("sala").value="pvp-"+c.toLowerCase()}
+  else{W5.code="";if(/^pvp-/i.test($("sala").value))$("sala").value="comunidade-1"}
+  return oGo.call(this)};
+
+/* ---------------- PvP: interface ---------------- */
+const ph=document.createElement("div");ph.id="v5hud";ph.className="pn";$("game").appendChild(ph);
+const big=document.createElement("div");big.id="v5big";$("game").appendChild(big);
+const pov=document.createElement("div");pov.className="ov";pov.id="v5ov";pov.innerHTML='<div class="box"><h3><span id="v5T">⚔️ Sala PvP</span><button class="x" data-close>✕</button></h3><div id="v5B"></div></div>';
+$("game").appendChild(pov);pov.querySelector("[data-close]").onclick=closeOv;
+const tmCount=()=>{const c={red:0,blue:0};if(W5.team)c[W5.team]++;for(const id in others){const o=others[id];if(o.team&&c[o.team]!=null)c[o.team]++}return c};
+const present=()=>{const L=[{uid:me.uid,n:me.n,team:W5.team}];for(const id in others){const o=others[id];if(o.uid&&o.av)L.push({uid:o.uid,n:o.n,team:o.team})}return L};
+function leader(){const L=present(),st=W5.st;if(st&&st.host&&L.some(p=>p.uid===st.host))return st.host;return L.map(p=>p.uid).sort()[0]}
+const amLeader=()=>leader()===me.uid;
+const clock=()=>{const S=W5.st;if(!S||S.st!=="run")return null;return {pre:(S.t0-nowMs())/1000,left:(S.t0+S.dur*1000-nowMs())/1000}};
+const live=()=>{const c=clock();return !!c&&c.pre<=0&&c.left>0};
+const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+function hudTick(){if(!W5.inPvp)return;const S=W5.st,sc=W5.score||{},c=clock(),M=S&&PVPM[S.mode];let mid="";
+  if(!S||S.st==="lobby")mid="⏳ Aguardando o início";else if(S.st==="end")mid="🏁 Fim de partida";else if(c&&c.pre>0)mid="Começa em "+Math.ceil(c.pre);else if(c)mid="⏱ "+fmt(c.left);
+  ph.innerHTML=`${TEAM.red.ico}<span class="sc">${sc.red||0}</span>×<span class="sc">${sc.blue||0}</span>${TEAM.blue.ico}<span>${mid}</span><span style="color:var(--mut)">${M?M.ico+" "+M.n:""}</span>${W5.team?`<span style="color:${TEAM[W5.team].css}">você: ${TEAM[W5.team].ico}</span>`:""}<button id="v5pb">📋 Sala</button>`;
+  $("v5pb").onclick=openLobby;
+  if(c&&c.pre>0&&c.pre<4){big.style.display="block";big.textContent=Math.ceil(c.pre)}else if(c&&c.pre<=0&&c.pre>-1.2){big.style.display="block";big.textContent="VALENDO!"}else if(!W5.bigHold)big.style.display="none"}
+function openLobby(){const S=W5.st||{},L=present(),code=(room||"").split("_")[0].replace(/^pvp-/,"").toUpperCase(),host=amLeader(),M=PVPM[S.mode]||PVPM.reflor;openOv("v5ov");
+  const col=t=>`<div class="card" style="flex:1;min-width:140px;border-color:${TEAM[t].css}"><b style="color:${TEAM[t].css}">${TEAM[t].ico} ${TEAM[t].n}</b>${L.filter(p=>p.team===t).map(p=>`<div>${p.uid===me.uid?"⭐ ":""}${esc(p.n||"?")}</div>`).join("")||"<div style='color:var(--mut)'>vazio</div>"}</div>`;
+  const res=S.st==="end"&&S.final?`<div class="card" style="margin-bottom:8px;text-align:center"><b style="font-size:18px">${S.final.red===S.final.blue?"🤝 Empate!":(S.final.red>S.final.blue?TEAM.red:TEAM.blue).ico+" "+(S.final.red>S.final.blue?TEAM.red:TEAM.blue).n+" venceu!"}</b><div>${TEAM.red.ico} ${S.final.red||0} × ${S.final.blue||0} ${TEAM.blue.ico} · você fez ${W5.mine} ponto(s)</div></div>`:"";
+  $("v5B").innerHTML=`${res}<p style="margin-top:0">Código da sala: <b style="color:var(--gold);font-size:18px;letter-spacing:.15em">${esc(code)}</b> · ${BIO[me.bio].ico} ${BIO[me.bio].n}</p>
+    <label>Modo</label>${host&&S.st!=="run"?`<div class="v5modes">${Object.keys(PVPM).map(k=>`<button data-pm="${k}" aria-pressed="${k===S.mode}"><b>${PVPM[k].ico} ${PVPM[k].n}</b><br>${PVPM[k].t}</button>`).join("")}</div>`:`<div class="card"><b>${M.ico} ${M.n}</b><div>${M.t}</div></div>`}
+    <label>Times (os colegas do mesmo time se ajudam)</label><div class="row" style="margin:0">${col("red")}${col("blue")}</div>
+    <div class="row">${S.st!=="run"?`<button class="mb" id="v5sw">🔁 Trocar de time</button>`:""}${host&&S.st!=="run"?`<button class="mb pri" id="v5st">▶️ Começar partida</button>`:S.st!=="run"?`<button class="mb" disabled>Esperando ${esc((L.find(p=>p.uid===leader())||{}).n||"o anfitrião")} começar…</button>`:""}<button class="mb" id="v5out">🚪 Sair do PvP</button></div>
+    <p style="font-size:12px;color:var(--mut)">Vale tudo menos atrapalhar o próprio time: quanto mais vocês se ajudam, mais pontos fazem. ${MOB?"Toque no botão de ação":"Clique ou aperte Espaço"} para agir e F para ajudar um colega.</p>`;
+  $("v5B").querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>{W5.base.child("state").update({mode:b.dataset.pm});setTimeout(openLobby,300)});
+  const sw=$("v5sw");if(sw)sw.onclick=()=>{setTeam(W5.team==="red"?"blue":"red");setTimeout(openLobby,200)};
+  const st=$("v5st");if(st)st.onclick=startMatch;$("v5out").onclick=()=>$("mExit").click()}
+function setTeam(t){W5.team=t;if(myRef)myRef.update({team:t});ringFor("me",t)}
+
+/* ---------------- PvP: partida ---------------- */
+function rngF(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function genSpots(seed,n){const r=rngF(seed),L=[];let g=0;while(L.length<n&&g++<4000){const x=(r()*2-1)*72,z=(r()*2-1)*72;if(Math.hypot(x,z)<17||Math.abs(z-(23+Math.sin(x/18)*2.5))<5.5)continue;
+  let bad=false;for(let s=0;s<8;s++){const p=slotPos(s);if(Math.abs(x-p.x)<HALF+2.5&&Math.abs(z-p.z)<HALF+2.5){bad=true;break}}if(bad||L.some(q=>Math.hypot(q.x-x,q.z-z)<7))continue;L.push({x,z})}return L}
+const SPAWN={red:{x:-23,z:-23},blue:{x:23,z:-23}};
+function startMatch(){const S=W5.st||{},mode=S.mode||"reflor",t0=nowMs()+4000,seed=Math.floor(Math.random()*1e9);
+  W5.base.child("state").set({mode,st:"run",t0,dur:PVPM[mode].dur,seed,mid:String(t0),host:me.uid,hn:me.n});closeOv();
+  if(mode==="brigada"){const sp=genSpots(seed,24),r=rngF(seed+7),o={};for(let i=0;i<7;i++)o[Math.floor(r()*sp.length)]={f:1};W5.base.child("m/"+t0+"/spots").set(o)}}
+function score(n){if(!W5.st||!W5.team)return;W5.mine+=n;W5.base.child("m/"+W5.st.mid+"/score/"+W5.team).transaction(v=>(v||0)+n)}
+function onState(S){const prev=W5.st;W5.st=S;
+  if(S&&S.mid&&(!prev||prev.mid!==S.mid)){if(W5.mref)W5.mref.off();W5.mref=W5.base.child("m/"+S.mid);W5.score={};W5.spots={};W5.mine=0;W5.wet=0;
+    W5.mref.child("score").on("value",s=>{W5.score=s.val()||{}});W5.mref.child("spots").on("value",s=>{W5.spots=s.val()||{};paintSpots()});
+    const fresh=v=>v&&nowMs()-(v.ts||0)<4000;
+    W5.mref.child("shots").limitToLast(20).on("child_added",s=>{const v=s.val();if(fresh(v)&&v.uid!==me.uid)throwBall(v.x,v.z,v.dx,v.dz,false,v.team)});
+    W5.mref.child("hits").limitToLast(20).on("child_added",s=>{const v=s.val();if(fresh(v)&&v.target===me.uid&&W5.wet<=0){W5.wet=3.5;if(myRef)myRef.update({wet:1});snd.water();burst(new THREE.Vector3(P.x,1.6,P.z),0x6ab8f0,26,{up:2,v:3,sp:.6});toast("💦 "+v.bn+" te acertou! Um colega pode te secar (F), ou espere secar.")}});
+    W5.mref.child("help").limitToLast(20).on("child_added",s=>{const v=s.val();if(fresh(v)&&v.target===me.uid&&W5.wet>0){W5.wet=0;if(myRef)myRef.update({wet:0});toast("🤝 "+v.bn+" secou você! Volte para a guerra!");snd.card()}});
+    buildSpots();if(S.st==="run"){const sp=SPAWN[W5.team||"red"];P.x=sp.x+(Math.random()-.5)*4;P.z=sp.z+(Math.random()-.5)*4;tip(PVPM[S.mode].ico,PVPM[S.mode].n,PVPM[S.mode].t,9000)}}
+  if(S&&S.st==="end"&&!W5.paid[S.mid]){W5.paid[S.mid]=1;const f=S.final||W5.score||{},r=f.red||0,b=f.blue||0,win=W5.team&&((W5.team==="red"&&r>b)||(W5.team==="blue"&&b>r)),tie=r===b;
+    rewardFloat(win?40:tie?25:15,win?30:tie?20:10,null,win?"🏆":"🤝");if(win){snd.level();F.st.pvpW=(F.st.pvpW||0)+1}W5.bigHold=true;big.style.display="block";big.textContent=tie?"🤝 EMPATE":(r>b?TEAM.red:TEAM.blue).ico+" VENCEU!";setTimeout(()=>{W5.bigHold=false},3500);
+    setTimeout(openLobby,1500);save()}
+  if(S&&S.st==="lobby"&&(!prev||prev.st!=="lobby"))setTimeout(openLobby,600);if(!S||S.st!=="run")clearSpotsIfNone()}
+function clearSpotsIfNone(){if(W5.st&&W5.st.st==="end")return;for(const v of W5.spotsV)scene.remove(v.g);W5.spotsV=[]}
+function pvpInit(){W5.inPvp=true;W5.base=R("rooms/"+room+"/pvp");W5.base.child("state").on("value",s=>{const S=s.val();if(!S){W5.base.child("state").transaction(c=>c||{mode:W5.wantMode,st:"lobby",host:me.uid,hn:me.n});return}onState(S)});
+  setTimeout(()=>{const c=tmCount();setTeam(c.red<=c.blue?"red":"blue");if(W5.st&&W5.st.st==="lobby")openLobby()},1800);ph.style.display="flex"}
+
+/* ---------------- PvP: pontos do mapa ---------------- */
+const RING={n:new THREE.MeshBasicMaterial({color:0xd8cfa0,transparent:true,opacity:.85,toneMapped:false}),red:new THREE.MeshBasicMaterial({color:TEAM.red.c,toneMapped:false}),blue:new THREE.MeshBasicMaterial({color:TEAM.blue.c,toneMapped:false})};
+const ringGeo=new THREE.TorusGeometry(1.1,.09,6,28).rotateX(Math.PI/2);
+function beacon(ico){const t=tex("v5b"+ico,64,64,g=>{g.font="48px serif";g.textAlign="center";g.textBaseline="middle";g.fillText(ico,32,36)});const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,transparent:true}));s.scale.setScalar(1.6);return s}
+function buildSpots(){for(const v of W5.spotsV)scene.remove(v.g);W5.spotsV=[];const S=W5.st;if(!S||S.mode==="balao"||S.st==="lobby")return;
+  for(const p of genSpots(S.seed,24)){const g=new THREE.Group();g.position.set(p.x,0,p.z);const ring=new THREE.Mesh(ringGeo,RING.n);ring.position.y=.1;g.add(ring);
+    const b=beacon(S.mode==="brigada"?"🔥":"🌱");b.position.y=3.2;g.add(b);
+    const tree=new THREE.Group(),tr=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,1,6),mat("v_wood"));tr.position.y=.5;tree.add(tr);const cp=new THREE.Mesh(new THREE.IcosahedronGeometry(.55,1),mat("v5leaf",null,{color:0x4f9a3a,r:.9}));cp.position.y=1.2;tree.add(cp);tree.visible=false;g.add(tree);
+    scene.add(g);W5.spotsV.push({g,ring,b,tree,x:p.x,z:p.z})}paintSpots()}
+function paintSpots(){const S=W5.st;if(!S)return;W5.spotsV.forEach((v,i)=>{const s=W5.spots[i]||{};
+  if(S.mode==="reflor"){v.ring.material=s.t?RING[s.t]:RING.n;v.b.visible=!s.t;v.tree.visible=!!s.t;v.tree.scale.setScalar(s.w?1.35:.85)}
+  else{const burn=s.f===1;v.ring.material=!burn&&s.t?RING[s.t]:RING.n;v.b.visible=burn;v.burn=burn;v.tree.visible=false}})}
+function nearSpot(){let best=-1,bd=2.6;W5.spotsV.forEach((v,i)=>{const d=Math.hypot(P.x-v.x,P.z-v.z);if(d<bd){bd=d;best=i}});return best}
+function spotAct(i){const S=W5.st,ref=W5.base.child("m/"+S.mid+"/spots/"+i),team=W5.team;let kind=null;
+  ref.transaction(cur=>{kind=null;if(S.mode==="reflor"){if(!cur){kind="plant";return {t:team,by:me.uid,w:0}}if(cur.t===team&&!cur.w&&cur.by!==me.uid){kind="help";return Object.assign({},cur,{w:me.uid})}return}
+    if(cur&&cur.f===1){kind="fire";return {f:0,t:team,by:me.uid}}return},(e,ok)=>{const v=W5.spotsV[i],pos=new THREE.Vector3(v.x,1.2,v.z);
+    if(!ok||!kind){toast(S.mode==="reflor"?(W5.spots[i]&&W5.spots[i].t===team?"Essa muda já é do seu time (e já foi regada ou é sua).":"Esse ponto já foi plantado pelo outro time."):"Esse fogo já foi apagado.");return}
+    if(kind==="plant"){score(1);snd.plant();burst(pos,0x6a4a2a,14,{up:1.5});floatText("+1 🌳 muda plantada",pos,TEAM[team].css)}
+    else if(kind==="help"){score(1);snd.water();burst(pos,0x6ab8f0,16,{up:1.5});floatText("+1 🤝 regou a muda do colega",pos,TEAM[team].css)}
+    else{let n=1;const mate=present().some(p=>p.uid!==me.uid&&p.team===team&&(()=>{for(const id in others){const o=others[id];if(o.uid===p.uid)return Math.hypot(o.rx-v.x,o.rz-v.z)<5}return false})());if(mate)n=2;
+      score(n);snd.water();smoke(pos,{size:1.6,grow:2,life:1.5,op:.5,col:0xdddddd,vy:1});floatText("+"+n+(n>1?" 🤝 bônus de equipe":" 🚒 fogo apagado"),pos,TEAM[team].css)}});P.act=.001;P.an++}
+
+/* ---------------- PvP: balões ---------------- */
+const ballGeo=new THREE.SphereGeometry(.2,10,8);
+function throwBall(x,z,dx,dz,mine,team){const m=new THREE.Mesh(ballGeo,mat("v5ball"+team,null,{color:team==="blue"?0x7ab8ff:0xff9a8a,r:.25}));m.position.set(x,1.6,z);scene.add(m);W5.balls.push({m,vx:dx*17,vy:4.5,vz:dz*17,mine,team,age:0,hit:{}})}
+function myThrow(){if(W5.wet>0){toast("💦 Você está molhado! Espere secar ou peça ajuda a um colega.");return}const t=performance.now();if(t-W5.cd<700)return;W5.cd=t;
+  let dx=-Math.sin(P.yw),dz=-Math.cos(P.yw);if(!MOB&&mouse.on&&t-mouse.t<4000){RC.setFromCamera({x:mouse.x/innerWidth*2-1,y:-(mouse.y/innerHeight)*2+1},camera);const p=new THREE.Vector3();if(RC.ray.intersectPlane(PLANE,p)){const ex=p.x-P.x,ez=p.z-P.z,l=Math.hypot(ex,ez);if(l>.5){dx=ex/l;dz=ez/l}}}
+  P.yw=Math.atan2(-dx,-dz);P.act=.001;P.an++;snd.swish();throwBall(P.x,P.z,dx,dz,true,W5.team);W5.mref.child("shots").push({uid:me.uid,x:+P.x.toFixed(2),z:+P.z.toFixed(2),dx:+dx.toFixed(3),dz:+dz.toFixed(3),team:W5.team,ts:nowMs()})}
+function ballsTick(dt){for(let i=W5.balls.length-1;i>=0;i--){const b=W5.balls[i],m=b.m;b.age+=dt;b.vy-=9.8*dt;m.position.x+=b.vx*dt;m.position.y+=b.vy*dt;m.position.z+=b.vz*dt;let pop=m.position.y<=.15||b.age>2;
+    if(b.mine&&!pop&&live())for(const id in others){const o=others[id];if(!o.av||!o.team||o.team===W5.team||o.wet)continue;if(Math.hypot(o.rx-m.position.x,o.rz-m.position.z)<1&&m.position.y<2.5){pop=true;score(1);
+      W5.mref.child("hits").push({target:o.uid,by:me.uid,bn:me.n,team:W5.team,ts:nowMs()});floatText("+1 💦 acertou "+o.n,m.position,TEAM[W5.team].css);break}}
+    if(pop){burst(m.position.clone(),0x8acbf2,16,{up:2,v:2.5,sp:.3,life:.5});nz(1400,.18,.12,"bandpass");scene.remove(m);W5.balls.splice(i,1)}}}
+
+/* ---------------- anéis de time ---------------- */
+function ringFor(id,team){const old=W5.rings[id];if(old&&old.userData.t===team)return old;if(old)scene.remove(old);if(!team){delete W5.rings[id];return null}
+  const r=new THREE.Mesh(new THREE.TorusGeometry(.55,.06,6,22).rotateX(Math.PI/2),RING[team]);r.userData.t=team;scene.add(r);W5.rings[id]=r;return r}
+function ringsTick(dt){if(!W5.inPvp)return;const mr=ringFor("me",W5.team);if(mr)mr.position.set(P.x,P.y+.08,P.z);
+  for(const id in others){const o=others[id];if(!o.av)continue;const r=ringFor(id,o.team||"");if(r)r.position.set(o.rx,groundY(o.rx,o.rz)+.08,o.rz);if(o.lb&&o.team){o.lb.style.color=TEAM[o.team].css;if(!o.lb.textContent.startsWith(TEAM[o.team].ico))o.lb.textContent=TEAM[o.team].ico+" "+o.lb.textContent.replace(/^[🔴🔵] /u,"")}
+    if(o.wet&&Math.random()<dt*6)burst(new THREE.Vector3(o.rx,1.8,o.rz),0x8acbf2,2,{up:.2,v:.6,sp:.4,life:.5})}
+  for(const id in W5.rings)if(id!=="me"&&!others[id]){scene.remove(W5.rings[id]);delete W5.rings[id]}
+  if(W5.wet>0){W5.wet-=dt;if(Math.random()<dt*8)burst(new THREE.Vector3(P.x,1.8,P.z),0x8acbf2,2,{up:.2,v:.6,sp:.4,life:.5});if(W5.wet<=0){W5.wet=0;if(myRef)myRef.update({wet:0});toast("☀️ Você secou!")}}}
+
+/* ---------------- ganchos ---------------- */
+const driving=()=>$("v4hud")&&$("v4hud").style.display==="flex";
+const oDo=doAction;doAction=function(){if(W5.inPvp&&W5.st&&W5.st.st==="run"&&!driving()){if(!live()){toast("⏳ A partida ainda não começou");return}
+    if(W5.st.mode==="balao")return myThrow();const i=nearSpot();if(i>=0)return spotAct(i)}oDo()};
+const oMv=movePlayer;movePlayer=function(dt){if(W5.wet>0&&!driving()){const x0=P.x,z0=P.z;oMv(dt);P.x=x0+(P.x-x0)*.4;P.z=z0+(P.z-z0)*.4;me.av.position.x=P.x;me.av.position.z=P.z;return}oMv(dt)};
+const oIT=interactTick;interactTick=function(){oIT();try{if(!W5.inPvp||!W5.st||W5.st.st!=="run"||W5.st.mode!=="balao"||W5.wet>0)return;
+  for(const id in others){const o=others[id];if(o.av&&o.wet&&o.team===W5.team&&Math.hypot(o.rx-P.x,o.rz-P.z)<2.6){iaKind="v5dry:"+o.uid;$("ia").style.display="block";$("ia").textContent=(MOB?"":"F: ")+"🧺 Secar "+o.n;$("bTalk").style.display="flex";return}}}catch(e){}};
+const oIn=interact;interact=function(){if(typeof iaKind==="string"&&iaKind.startsWith("v5dry:")){const uid=iaKind.slice(6);W5.mref.child("help").push({target:uid,by:me.uid,bn:me.n,ts:nowMs()});score(1);snd.card();floatText("+1 🤝 secou o colega",null,TEAM[W5.team].css);return}oIn()};
+const oNS=netState;netState=function(){const s=oNS();s.team=W5.team||"";s.wet=W5.wet>0?1:0;return s};
+const oT2=tick2;tick2=function(dt,t){oT2(dt,t);if(!running||!F||!scene)return;try{
+  if(!W5.inPvp&&/^pvp-/.test(room||"")&&fbOk()&&myRef)pvpInit();if(!W5.inPvp)return;$("guide").style.display="none";
+  ballsTick(dt);ringsTick(dt);for(const v of W5.spotsV){v.b.position.y=3.2+Math.sin(t/400+v.x)*.2;if(v.burn&&Math.random()<dt*6&&Math.hypot(v.x-P.x,v.z-P.z)<70)smoke(new THREE.Vector3(v.x+(Math.random()-.5)*1.4,.3,v.z+(Math.random()-.5)*1.4),{fire:true,size:1+Math.random(),grow:.5,life:.6,op:.9,vy:2})}
+  if(t-(W5.sec||0)>500){W5.sec=t;hudTick();const S=W5.st,c=clock();
+    if(S&&S.st==="run"&&amLeader()){if(c&&c.left<=0)W5.base.child("state").update({st:"end",final:{red:(W5.score||{}).red||0,blue:(W5.score||{}).blue||0}});
+      else if(S.mode==="brigada"&&c&&c.pre<=0&&t-(W5.fireT||0)>9000){W5.fireT=t;const n=W5.spotsV.length,k=Math.floor(Math.random()*n);if(n&&!(W5.spots[k]&&W5.spots[k].f===1))W5.base.child("m/"+S.mid+"/spots/"+k).set({f:1})}}}}
+  catch(e){if(!W5.err){W5.err=1;console.error("v5",e)}}};
 })();
 
 </script>
