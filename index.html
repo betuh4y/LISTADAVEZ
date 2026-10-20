@@ -2187,21 +2187,25 @@ function engTick(){const E=W4.eng;if(!E)return;const D=VEH[W4.drv],r=Math.abs(W4
 function engOff(){const E=W4.eng;if(!E)return;W4.eng=null;try{E.g.gain.setTargetAtTime(0,ACx.currentTime,.08);setTimeout(()=>{E.o.stop();E.o2.stop()},400)}catch(e){}}
 
 /* ---------------- Som da comunidade (YouTube compartilhado) ---------------- */
-W4.near=LS.get("agro_ytnear",false);W4.mute=LS.get("agro_ytmute",false);W4.cur=null;W4.ready=false;W4.trk=null;
-const musRef=()=>fbOk()&&room?R("rooms/"+room+"/music"):null;
+W4.hear=true;W4.mute=false;W4.cur=null;W4.ready=false;W4.trk=null;W4.chans={};
+const pk=k=>k+"_"+me.uid;
+const musRef=()=>fbOk()&&room?R("rooms/"+room+"/music/"+me.uid):null,allRef=()=>fbOk()&&room?R("rooms/"+room+"/music"):null;
+const mine=()=>!!W4.cur&&W4.cur.uid===me.uid;
+function notMine(){if(W4.cur&&!mine()){toast("🎵 Essa música é de "+(W4.cur.by||"outro jogador")+". Você só controla a sua.");return true}return false}
 function ytParse(s){s=String(s||"").trim();let id=null,list=null;try{const u=new URL(/^https?:\/\//i.test(s)?s:"https://"+s),h=u.hostname.replace(/^(www|m|music)\./,"");
   if(h==="youtu.be")id=u.pathname.slice(1).split("/")[0];else if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){id=u.searchParams.get("v");const mm=u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);if(!id&&mm)id=mm[2]}
   list=u.searchParams.get("list")}catch(e){}if(!id&&/^[\w-]{11}$/.test(s))id=s;if(id&&!/^[\w-]{11}$/.test(id))id=null;if(list&&!/^[\w-]{10,64}$/.test(list))list=null;return id||list?{id,list}:null}
 function ytLoad(){if(window.YT&&YT.Player)return Promise.resolve();return new Promise((res,rej)=>{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev()}catch(e){}res()};
   if(!$("v4ytapi")){const s=document.createElement("script");s.id="v4ytapi";s.src="https://www.youtube.com/iframe_api";s.onerror=rej;document.head.appendChild(s)}setTimeout(()=>rej("timeout"),12000)})}
-function ytSave(url,t){const old=LS.get("agro_yt",[]),prev=old.find(x=>x.url===url),R_=old.filter(x=>x.url!==url);R_.unshift({url,t:t||(prev&&prev.t)||""});LS.set("agro_yt",R_.slice(0,6))}
+function ytSave(url,t){const old=LS.get(pk("agro_yt"),[]),prev=old.find(x=>x.url===url),R_=old.filter(x=>x.url!==url);R_.unshift({url,t:t||(prev&&prev.t)||""});LS.set(pk("agro_yt"),R_.slice(0,6))}
 const elapsed=S=>S.paused?(S.pausedAt||0):Math.max(0,(nowMs()-(S.t0||nowMs()))/1000);
 function sourcePos(uid){if(uid===me.uid)return [P.x,P.z];for(const id in others){const o=others[id];if(o.uid===uid&&o.av)return [o.rx,o.rz]}return null}
-function localVol(){if(W4.mute)return 0;let v=W4.vol;if(W4.near&&W4.cur){const s=sourcePos(W4.cur.uid);if(s)v*=clamp(1.15-Math.hypot(P.x-s[0],P.z-s[1])/50,0,1)}return Math.round(v)}
-function updSong(){const S=W4.cur;$("v4song").textContent=S&&S.url?(S.paused?"⏸ ":"🎵 ")+(S.title||"YouTube"):"";$("v4ytT").textContent=S&&S.url?(S.title||"Carregando…")+(S.by?" · "+S.by:""):"";
+function localVol(){if(W4.mute)return 0;let v=W4.vol;if(W4.cur&&W4.cur.uid!==me.uid){const s=sourcePos(W4.cur.uid);v*=s?clamp(1.25-Math.hypot(P.x-s[0],P.z-s[1])/28,0,1):0}return Math.round(v)}
+function updSong(){const S=W4.cur;$("v4song").textContent=S&&S.url?(S.paused?"⏸ ":"🎵 ")+(S.title||"YouTube"):"";$("v4ytT").textContent=S&&S.url?(S.title||"Carregando…")+(S.uid!==me.uid?" · som de "+(S.by||"?")+" 📍":""):"";
+  for(const id of ["v4ytPP","v4ytNx","v4ytS","v4hpp","v4hnx"]){const b=$(id);if(b){b.disabled=!!S&&S.uid!==me.uid;b.style.opacity=b.disabled?.35:1}}
   $("v4ytPP").textContent=$("v4hpp").textContent=S&&S.paused?"▶️":"⏸";$("v4ytM").textContent=W4.mute?"🔈":"🔇";$("bMus").classList.toggle("new",!!(S&&S.url&&!S.paused))}
 function onState(e){W4.playing=e.data===1;const S=W4.cur,p=W4.player;if(e.data!==1||!S)return;try{const d=p.getVideoData(),r=musRef();
-  if(d&&d.title){if(S.url)ytSave(S.url,d.title);if(r&&S.title!==d.title&&(S.uid===me.uid||!S.title))r.update({title:d.title})}
+  if(S.uid!==me.uid)return;if(d&&d.title){if(S.url)ytSave(S.url,d.title);if(r&&S.title!==d.title)r.update({title:d.title})}
   const P_=ytParse(S.url);if(P_&&P_.list&&S.uid===me.uid&&r){const idx=p.getPlaylistIndex();if(idx>=0&&idx!==(S.idx||0))r.update({idx,t0:nowMs()-p.getCurrentTime()*1000,title:d&&d.title||""})}}catch(err){}}
 function onErr(e){toast([101,150].includes(e.data)?"🎵 Esse vídeo não permite tocar fora do YouTube. Tente outro.":"🎵 Não foi possível tocar esse vídeo.");W4.playing=false}
 async function apply(S){W4.cur=S&&S.url?S:null;updSong();
@@ -2214,51 +2218,54 @@ async function apply(S){W4.cur=S&&S.url?S:null;updSong();
       playerVars:Object.assign({autoplay:S.paused?0:1,playsinline:1,rel:0,modestbranding:1,start:Math.floor(el)},P_.list?{list:P_.list,listType:"playlist",index:S.idx||0}:{}),
       events:{onReady:e=>{W4.ready=true;e.target.setVolume(localVol());sync()},onStateChange:onState,onError:onErr}});kick();return}
   sync()}
-function kick(){const S=W4.cur;clearTimeout(W4.kickT);W4.kickT=setTimeout(()=>{const p=W4.player;if(!W4.cur||W4.cur!==S||S.paused||!p||!W4.ready)return;try{if(p.getPlayerState()!==1)toast("🎵 Toque em ▶️ no mini-player para ouvir a música da comunidade")}catch(e){}},5000)}
+function kick(){const S=W4.cur;clearTimeout(W4.kickT);W4.kickT=setTimeout(()=>{const p=W4.player;if(!W4.cur||W4.cur!==S||S.paused||!p||!W4.ready)return;try{if(p.getPlayerState()!==1)toast("🎵 Toque em ▶️ no mini-player para ouvir a música")}catch(e){}},5000)}
 function sync(){const S=W4.cur,p=W4.player;if(!S||!p||!W4.ready)return;const P_=ytParse(S.url);if(!P_)return;const trk=S.url+"|"+(S.idx||0),el=elapsed(S);
   try{p.setVolume(localVol());if(W4.trk!==trk){W4.trk=trk;if(P_.list)p.loadPlaylist({list:P_.list,listType:"playlist",index:S.idx||0,startSeconds:el});else p.loadVideoById({videoId:P_.id,startSeconds:el});
       if(S.paused)setTimeout(()=>{try{p.pauseVideo()}catch(e){}},700);else kick();return}
     const st=p.getPlayerState();if(S.paused){if(st===1||st===3)p.pauseVideo();return}if(st===0)return;if(st!==1&&st!==3)p.playVideo();
     const same=!P_.list||p.getPlaylistIndex()===(S.idx||0),ct=p.getCurrentTime();if(same&&st===1&&Math.abs(ct-el)>4)p.seekTo(el,true)}catch(e){}}
 function setMusic(url){if(!ytParse(url)){toast("Link do YouTube inválido. Cole o endereço de um vídeo ou playlist.");return}ytSave(url);
-  const S={url,uid:me.uid,by:me.n,t0:nowMs(),paused:false,pausedAt:0,idx:0,title:"",pb:""},r=musRef();if(r)r.set(S);else apply(S);audioOn()}
-function togglePause(){const S=W4.cur;if(!S)return;const N=S.paused?{paused:false,t0:nowMs()-(S.pausedAt||0)*1000,pausedAt:0,pb:me.n}:{paused:true,pausedAt:elapsed(S),pb:me.n},r=musRef();
+  const S={url,uid:me.uid,by:me.n,t0:nowMs(),paused:false,pausedAt:0,idx:0,title:"",pb:""},r=musRef();if(r){r.set(S);r.onDisconnect().remove()}else apply(S);audioOn()}
+function togglePause(){const S=W4.cur;if(!S||notMine())return;const N=S.paused?{paused:false,t0:nowMs()-(S.pausedAt||0)*1000,pausedAt:0,pb:me.n}:{paused:true,pausedAt:elapsed(S),pb:me.n},r=musRef();
   if(r)r.update(N);else apply(Object.assign({},S,N))}
-function stopMusic(){const r=musRef();if(r){r.remove();feed(me.n+" parou a música ⏹")}else apply(null)}
-function listenMusic(){const r=musRef();if(!r){W4.listen=true;return}W4.listen=true;let first=true;
-  r.on("value",s=>{const S=s.val(),prev=W4.cur;if(!first&&S&&S.url){if(!prev||prev.url!==S.url||(S.idx||0)!==(prev.idx||0)&&S.uid!==me.uid){if(S.uid!==me.uid&&(!prev||prev.url!==S.url))toast("🎵 "+S.by+" colocou uma música para a comunidade")}
-      else if(prev&&prev.paused!==S.paused&&S.pb&&S.pb!==me.n)toast(S.paused?"⏸ "+S.pb+" pausou a música":"▶️ "+S.pb+" voltou a tocar a música")}
-    else if(!first&&!S&&prev)toast("⏹ A música da comunidade parou");first=false;apply(S);if($("v4ov").style.display==="flex")openPanel()})}
-yt.querySelector(".c").insertAdjacentHTML("beforeend",'<button id="v4ytS" title="Parar para todos">⏹</button><button id="v4ytM" title="Silenciar só para mim">🔇</button>');
+function stopMusic(){if(notMine())return;const r=musRef();if(r)r.remove();else apply(null)}
+function listenMusic(){W4.vol=LS.get(pk("agro_ytvol"),W4.vol);W4.mute=LS.get(pk("agro_ytmute"),false);W4.hear=LS.get(pk("agro_ythear"),true);W4.listen=true;const r=allRef();
+  if(r)r.on("value",s=>{W4.chans=s.val()||{};pick();if($("v4ov").style.display==="flex")openPanel()})}
+const chKey=S=>S?[S.uid,S.url,S.idx||0,S.t0,S.paused?1:0,S.title||""].join("|"):"";
+function pick(){let src=null;const my=W4.chans[me.uid];if(my&&my.url)src=Object.assign({uid:me.uid},my);
+  else if(!fbOk()&&W4.cur&&mine())src=W4.cur;
+  else if(W4.hear){let bd=30;for(const id in others){const o=others[id];if(!o.av||!o.uid)continue;const c=W4.chans[o.uid];if(!c||!c.url||c.paused)continue;const d=Math.hypot(o.rx-P.x,o.rz-P.z);if(d<bd){bd=d;src=Object.assign({uid:o.uid},c)}}}
+  if(chKey(src)===chKey(W4.cur))return;const prev=W4.cur;if(src&&src.uid!==me.uid&&(!prev||prev.uid!==src.uid))toast("📍 Você está ouvindo o som de "+(src.by||"um vizinho"));apply(src)}
+yt.querySelector(".c").insertAdjacentHTML("beforeend",'<button id="v4ytS" title="Parar minha música">⏹</button><button id="v4ytM" title="Silenciar só para mim">🔇</button>');
 $("v4ytX").remove();
-$("v4ytPP").onclick=togglePause;$("v4ytS").onclick=stopMusic;$("v4ytM").onclick=()=>{W4.mute=!W4.mute;LS.set("agro_ytmute",W4.mute);sync();updSong();toast(W4.mute?"🔇 Música silenciada só para você":"🔊 Música de volta")};
+$("v4ytPP").onclick=togglePause;$("v4ytS").onclick=stopMusic;$("v4ytM").onclick=()=>{W4.mute=!W4.mute;LS.set(pk("agro_ytmute"),W4.mute);sync();updSong();toast(W4.mute?"🔇 Música silenciada só para você":"🔊 Música de volta")};
 
 /* ---------------- painel: música e veículo ---------------- */
-function openPanel(){const t=W4.drv,v=t&&W4.veh[t],R_=LS.get("agro_yt",[]),S=W4.cur;openOv("v4ov");ov.querySelector("h3 span").textContent="🎵 Som da comunidade";
-  $("v4B").innerHTML=`<p style="margin-top:0;font-size:13px">Todos na comunidade ouvem a mesma música, dentro ou fora do carro e da moto. Qualquer pessoa pode colocar, pausar ou parar.</p>
-    <div class="card" style="margin-bottom:8px">${S?`<b>${S.paused?"⏸ Pausada":"🎵 Tocando agora"}: ${esc(S.title||"YouTube")}</b><div style="font-size:12px;color:var(--mut)">colocada por ${esc(S.by||"?")}</div><div class="row" style="margin:6px 0 0"><button class="mb" id="v4pp">${S.paused?"▶️ Continuar":"⏸ Pausar"}</button><button class="mb" id="v4st">⏹ Parar para todos</button></div>`:"<b>Nenhuma música tocando.</b>"}</div>
-    <label>Colocar música do YouTube</label><div class="row" style="margin:0;align-items:center"><input type="text" id="v4url" placeholder="Cole o link de um vídeo ou playlist do YouTube" style="flex:3"><button class="mb pri" id="v4go" style="flex:1">▶️ Tocar</button></div>
+function openPanel(){const t=W4.drv,v=t&&W4.veh[t],R_=LS.get(pk("agro_yt"),[]),S=W4.cur,my=W4.chans[me.uid]&&W4.chans[me.uid].url?W4.chans[me.uid]:(mine()?S:null);openOv("v4ov");ov.querySelector("h3 span").textContent="🎵 Meu som";
+  $("v4B").innerHTML=`<p style="margin-top:0;font-size:13px">Cada jogador tem o próprio som. Você só controla a sua música, e quem estiver perto de você ouve, como som de carro (dentro ou fora do veículo).</p>
+    <div class="card" style="margin-bottom:8px">${my?`<b>${my.paused?"⏸ Sua música está pausada":"🎵 Sua música"}: ${esc(my.title||"YouTube")}</b><div class="row" style="margin:6px 0 0"><button class="mb" id="v4pp">${my.paused?"▶️ Continuar":"⏸ Pausar"}</button><button class="mb" id="v4st">⏹ Parar minha música</button></div>`:"<b>Você não está tocando nenhuma música.</b>"}${S&&!mine()?`<div style="font-size:12px;color:var(--mut);margin-top:6px">📍 Agora você está ouvindo o som de ${esc(S.by||"?")}: ${esc(S.title||"YouTube")}</div>`:""}</div>
+    <label>Colocar a minha música do YouTube</label><div class="row" style="margin:0;align-items:center"><input type="text" id="v4url" placeholder="Cole o link de um vídeo ou playlist do YouTube" style="flex:3"><button class="mb pri" id="v4go" style="flex:1">▶️ Tocar</button></div>
     ${R_.length?`<label>Tocadas recentemente</label><div class="row" style="margin:0">${R_.map((r,i)=>`<button class="qb" data-r="${i}" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🎵 ${esc(r.t||r.url)}</button>`).join("")}</div>`:""}
     <label>Meu volume: <span id="v4vv">${W4.vol}</span></label><input type="range" id="v4vol" min="0" max="100" value="${W4.vol}" style="width:100%">
     <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4mute" ${W4.mute?"checked":""} style="width:18px;height:18px"> 🔇 Silenciar só para mim</label>
-    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4near" ${W4.near?"checked":""} style="width:18px;height:18px"> 📍 Volume pela distância (mais alto perto de quem colocou a música)</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v4hear" ${W4.hear?"checked":""} style="width:18px;height:18px"> 👂 Ouvir o som dos outros jogadores quando eu estiver perto (sem música minha tocando)</label>
     <p style="font-size:12px;color:var(--mut)">${fbOk()?"":"⚠️ Sem conexão: a música toca só neste aparelho. "}Alguns vídeos não deixam tocar fora do YouTube; se acontecer, tente outro link.</p>
     ${v?`<label>🎨 Cor da ${t==="carro"?"caminhonete":"moto"}</label><div class="row" style="margin:0">${COLORS.map((c,i)=>`<button class="sw" data-c="${i}" aria-pressed="${i===v.c}" style="background:#${c.toString(16).padStart(6,"0")}"></button>`).join("")}</div>`:""}`;
   const inp=$("v4url");inp.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Enter")$("v4go").click()});
   $("v4go").onclick=()=>{setMusic(inp.value);closeOv()};
   $("v4B").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{setMusic(R_[+b.dataset.r].url);closeOv()});
   const pp=$("v4pp");if(pp)pp.onclick=()=>{togglePause();closeOv()};const st=$("v4st");if(st)st.onclick=()=>{stopMusic();closeOv()};
-  $("v4vol").oninput=e=>{W4.vol=+e.target.value;$("v4vv").textContent=W4.vol;LS.set("agro_ytvol",W4.vol);sync()};
-  $("v4mute").onchange=e=>{W4.mute=e.target.checked;LS.set("agro_ytmute",W4.mute);sync();updSong()};
-  $("v4near").onchange=e=>{W4.near=e.target.checked;LS.set("agro_ytnear",W4.near);sync()};
+  $("v4vol").oninput=e=>{W4.vol=+e.target.value;$("v4vv").textContent=W4.vol;LS.set(pk("agro_ytvol"),W4.vol);sync()};
+  $("v4mute").onchange=e=>{W4.mute=e.target.checked;LS.set(pk("agro_ytmute"),W4.mute);sync();updSong()};
+  $("v4hear").onchange=e=>{W4.hear=e.target.checked;LS.set(pk("agro_ythear"),W4.hear);pick()};
   if(v)$("v4B").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const m=v.m;buildVeh(t,{x:m.position.x,z:m.position.z,h:v.h,c:+b.dataset.c});saveVeh();openPanel()})}
 
-function nextTrack(d){const S=W4.cur;if(!S)return;const P_=ytParse(S.url);if(!P_||!P_.list){toast("⏭ Próxima só funciona com playlist do YouTube");return}const idx=Math.max(0,(S.idx||0)+d),r=musRef(),N={idx,t0:nowMs(),paused:false,pausedAt:0,title:"",pb:me.n};if(r)r.update(N);else apply(Object.assign({},S,N))}
+function nextTrack(d){const S=W4.cur;if(!S||notMine())return;const P_=ytParse(S.url);if(!P_||!P_.list){toast("⏭ Próxima só funciona com playlist do YouTube");return}const idx=Math.max(0,(S.idx||0)+d),r=musRef(),N={idx,t0:nowMs(),paused:false,pausedAt:0,title:"",pb:me.n};if(r)r.update(N);else apply(Object.assign({},S,N))}
 $("v4ytNx").onclick=()=>nextTrack(1);$("v4hnx").onclick=()=>nextTrack(1);$("v4hpp").onclick=togglePause;
 $("v4ytBig").onclick=()=>{yt.classList.toggle("big");$("v4ytBig").textContent=yt.classList.contains("big")?"🔽":"📺"};
 $("v4mus").onclick=openPanel;$("v4horn").onclick=horn;$("v4out").onclick=()=>leave();
-{const b=document.createElement("button");b.className="ib";b.id="bMus";b.title="Som da comunidade (M)";b.textContent="🎵";$("topb").insertBefore(b,$("bMenu"));b.onclick=openPanel}
-setInterval(()=>{if(W4.cur&&W4.player&&W4.ready)sync()},2000);
+{const b=document.createElement("button");b.className="ib";b.id="bMus";b.title="Meu som (M)";b.textContent="🎵";$("topb").insertBefore(b,$("bMenu"));b.onclick=openPanel}
+setInterval(()=>{if(W4.listen)pick();if(W4.cur&&W4.player&&W4.ready)sync()},1500);
 
 /* ---------------- ganchos no jogo ---------------- */
 const oMove=movePlayer;movePlayer=function(dt){if(W4.drv&&W4.veh[W4.drv])return drive(dt);oMove(dt)};
