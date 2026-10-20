@@ -650,7 +650,7 @@ const gateDir=i=>{const [gx,gz]=SLOTG[i];return gx!==0?{x:-gx,z:0}:{x:0,z:-gz}};
 const cellXZ=(slot,ci)=>{const p=slotPos(slot);return {x:p.x+((ci%10)-4.5)*CS,z:p.z+((ci/10|0)-4.5)*CS}};
 function worldCell(x,z){for(let s=0;s<8;s++){const p=slotPos(s);if(Math.abs(x-p.x)<HALF&&Math.abs(z-p.z)<HALF){const cx=Math.floor((x-p.x+HALF)/CS),cz=Math.floor((z-p.z+HALF)/CS);return {slot:s,ci:clamp(cz,0,9)*10+clamp(cx,0,9)}}}return null}
 const unlocked=(size,ci)=>{const o=(10-size)/2,cx=ci%10,cz=ci/10|0;return cx>=o&&cx<o+size&&cz>=o&&cz<o+size};
-const VILLAGE={house:{x:0,z:-11},ze:{x:2.5,z:-5.5},radio:{x:-2.4,z:-7.4},well:{x:-7,z:1},feira:[{x:7,z:3},{x:0,z:9},{x:-7,z:8}]};
+const VILLAGE={house:{x:0,z:-11},ze:{x:2.5,z:-5.5},radio:{x:-2.4,z:-7.4},well:{x:-9,z:-4.6},feira:[[28,"vender","🧺 Colheita","🧺 Vender a colheita"],[73,"sementes","🌱 Sementes","🌱 Comprar sementes e mudas"],[107,"melhorias","🛠️ Ferramentas","🛠️ Ferramentas e melhorias"],[152,"jogadores","🤝 Troca","🤝 Troca entre jogadores"],[-28,"coop","📦 Cooperativa","📦 Cooperativa e brincadeiras"]].map(([a,tab,n,lb])=>({x:+(Math.cos(a*Math.PI/180)*12).toFixed(2),z:+(Math.sin(a*Math.PI/180)*12).toFixed(2),tab,n,lb}))};
 const COLL=[];// obstáculos: {x,z,r} ou {x0,z0,x1,z1}
 let terrainH=()=>0;
 function groundY(x,z){return terrainH(x,z)}
@@ -695,22 +695,49 @@ function buildVillage(){const S=Q>=2?256:128,P=[],G={};const add=(k,g)=>(G[k]||(
   box("wood",.12,2.2,.12,W.x-1.1,1.1,W.z,0,[.75,.62,.5]);box("wood",.12,2.2,.12,W.x+1.1,1.1,W.z,0,[.75,.62,.5]);box("wood",2.4,.1,.1,W.x,2.1,W.z,0,[.75,.62,.5]);
   {const r=new THREE.BoxGeometry(2.8,.08,1.6);r.rotateX(.3);r.translate(W.x,2.45,W.z-.5);vcol(r,()=>[1,1,1]);add("tile",r);const r2=new THREE.BoxGeometry(2.8,.08,1.6);r2.rotateX(-.3);r2.translate(W.x,2.45,W.z+.5);vcol(r2,()=>[1,1,1]);add("tile",r2)}
   box("wood",.3,.35,.3,W.x,1.4,W.z,0,[.55,.42,.3]);COLL.push({x:W.x,z:W.z,r:1.4});
-  // barracas da feira
-  const TC=[[.85,.25,.2],[.2,.5,.75],[.95,.7,.2]];VILLAGE.feira.forEach((f,i)=>{const ry=Math.atan2(-f.x,-f.z);const c=Math.cos(ry),s=Math.sin(ry),L=(lx,lz)=>[f.x+lx*c+lz*s,f.z-lx*s+lz*c];
-    for(const [lx,lz] of [[-1.6,-1.1],[1.6,-1.1],[-1.6,1.1],[1.6,1.1]]){const [x,z]=L(lx,lz);box("wood",.1,2.4,.1,x,1.2,z,0,[.7,.6,.5])}
-    {const g=new THREE.BoxGeometry(3.6,.05,2.8);g.rotateX(.12);g.rotateY(ry);g.translate(f.x,2.45,f.z);vcol(g,()=>TC[i]);add("cloth",g);
-      for(let k=0;k<6;k++){const [x,z]=L(-1.5+k*.6,1.42);const fl=new THREE.PlaneGeometry(.6,.35);fl.rotateY(ry);fl.translate(x,2.25,z);vcol(fl,()=>k%2?TC[i]:[.95,.95,.9]);add("cloth",fl)}}
-    {const [x,z]=L(0,.6);box("wood",3.2,.08,1,x,.9,z,ry,[.9,.8,.7]);for(const lx of [-1.4,1.4]){const [x2,z2]=L(lx,.6);box("wood",.08,.9,.9,x2,.45,z2,ry,[.7,.6,.5])}
-      for(let k=0;k<5;k++){const [x3,z3]=L(-1.2+k*.6,.6);box("wood",.5,.22,.4,x3,1.05,z3,ry,[.75,.6,.45]);const pc=[[.95,.75,.15],[.85,.2,.15],[.4,.65,.2],[.9,.5,.15],[.5,.3,.5]][(k+i)%5];
-        for(let q=0;q<4;q++){const sp=new THREE.SphereGeometry(.08,6,4);sp.translate(x3+(q%2-.5)*.18,1.22,z3+((q>>1)-.5)*.14);vcol(sp,()=>pc);add("paint",sp)}}
-      COLL.push({x:x,z:z,r:1.7})}});
-  // bancos
-  for(const [x,z,r] of [[6,-6,.7],[-9,-4,-.4]]){box("wood",2,.08,.5,x,.5,z,r,[.8,.68,.55]);box("wood",.1,.5,.45,x+Math.cos(r)*.85,.25,z-Math.sin(r)*.85,r,[.6,.5,.4]);box("wood",.1,.5,.45,x-Math.cos(r)*.85,.25,z+Math.sin(r)*.85,r,[.6,.5,.4])}
-  const MM={plas,tile,wood,stone,cloth,paint};for(const k in G){const m=new THREE.Mesh(merge(G[k]),MM[k]);m.castShadow=Q>0;m.receiveShadow=Q>0;scene.add(m)}
+  // praça calçada
+  {const pg=new THREE.RingGeometry(.01,14.5,72,14);pg.rotateX(-Math.PI/2);pg.translate(0,.04,0);const p=pg.attributes.position,uv=pg.attributes.uv,col=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),r=Math.hypot(x,z),a=Math.atan2(z,x);uv.setXY(i,x/3.2,z/3.2);let k;if(r<3.3)k=.8;else if(r<4.1)k=1.08;else if(r>13.6)k=.86;else k=.93+((Math.floor((a+Math.PI)/(Math.PI/8))%2)?.06:0);col[i*3]=k;col[i*3+1]=k*.97;col[i*3+2]=k*.9}
+    pg.setAttribute("color",new THREE.BufferAttribute(col,3));const pmat=mat("v6plaza",genPBR("stone",S,T_STONE,5),{vc:true,r:1});pmat.polygonOffset=true;pmat.polygonOffsetFactor=-2;pmat.polygonOffsetUnits=-2;const pm=new THREE.Mesh(pg,pmat);pm.receiveShadow=Q>0;scene.add(pm)}
+  for(const [R,t] of [[14.5,.17],[4.1,.08]]){const g=new THREE.TorusGeometry(R,t,5,96);g.rotateX(Math.PI/2);g.translate(0,.07,0);vcol(g,()=>[.86,.84,.8]);add("stone",g)}
+  const LT=(f,ry)=>{const c=Math.cos(ry),s=Math.sin(ry);return (lx,lz)=>[f.x+lx*c+lz*s,f.z-lx*s+lz*c]};
+  // barracas temáticas, em semicírculo entre os caminhos e viradas para o centro
+  const SD=[{c:[.86,.24,.2],g:[[.95,.75,.15],[.85,.2,.15],[.4,.65,.2],[.92,.5,.15],[.55,.3,.55]]},{c:[.26,.6,.3],g:[[.42,.7,.28],[.55,.4,.25],[.5,.78,.32],[.62,.46,.28],[.36,.62,.25]],pots:1},
+    {c:[.2,.45,.78],g:[[.62,.64,.68],[.48,.32,.2],[.2,.55,.42],[.72,.72,.74],[.5,.36,.22]],tools:1},{c:[.95,.62,.15],g:[[.86,.7,.4],[.76,.55,.3],[.9,.8,.5],[.7,.5,.25],[.82,.66,.36]]},
+    {c:[.56,.32,.64],g:[[.82,.66,.42],[.78,.6,.4],[.88,.74,.5],[.74,.56,.36],[.84,.66,.42]],boxes:1}];
+  const SIGNS=[],VEND=[];
+  VILLAGE.feira.forEach((f,i)=>{const D=SD[i],ry=Math.atan2(-f.x,-f.z),L=LT(f,ry),bx=(k,w,h,d,lx,y,lz,c,u)=>{const [x,z]=L(lx,lz);box(k,w,h,d,x,y,z,ry,c,u)};
+    bx("wood",3.8,.14,3.3,0,.07,0,[.86,.76,.62],1.2);
+    for(const [lx,lz] of [[-1.75,-1.45],[1.75,-1.45],[-1.75,1.45],[1.75,1.45]])bx("wood",.12,2.75,.12,lx,1.37,lz,[.62,.5,.4]);
+    for(let k=0;k<6;k++){const [x,z]=L(-1.5+k*.6,0),g=new THREE.BoxGeometry(.6,.05,3.5);g.rotateX(.13);g.rotateY(ry);g.translate(x,2.76,z);vcol(g,()=>k%2?[.97,.95,.9]:D.c);add("cloth",g)}
+    for(let k=0;k<12;k++){const [x,z]=L(-1.65+k*.3,1.78),fl=new THREE.CircleGeometry(.16,8,Math.PI,Math.PI);fl.rotateY(ry);fl.translate(x,2.55,z);vcol(fl,()=>k%2?[.97,.95,.9]:D.c);add("cloth",fl)}
+    bx("wood",3.4,.86,.7,0,.5,1.05,[.78,.64,.5],1);bx("wood",3.6,.07,.85,0,.96,1.05,[.95,.86,.72],1);
+    for(let k=0;k<5;k++){const lx=-1.3+k*.65,[x,z]=L(lx,1.05),pc=D.g[k];bx("wood",.55,.18,.5,lx,1.09,1.05,[.72,.58,.42]);
+      if(D.tools){for(let q=0;q<3;q++){const g=new THREE.BoxGeometry(.04,.5,.04);g.rotateZ(.5-q*.25);g.rotateY(ry);g.translate(x+(q-1)*.12,1.35,z);vcol(g,()=>pc);add("paint",g)}}
+      else if(D.boxes){for(let q=0;q<2;q++)bx("paint",.36,.22,.3,lx,1.3+q*.23,1.05,q?[.84,.68,.46]:[.76,.6,.4])}
+      else for(let q=0;q<6;q++){const sp=new THREE.SphereGeometry(D.pots?.06:.085,6,4);sp.translate(x+(q%3-1)*.15,1.24+(q>2?.06:0),z+(q>2?.1:-.08));vcol(sp,()=>pc);add("paint",sp)}}
+    bx("wood",3.3,.08,.5,0,.6,-1.15,[.6,.48,.36]);bx("wood",3.3,.08,.5,0,1.25,-1.15,[.6,.48,.36]);for(const lx of [-1.6,1.6])bx("wood",.08,1.35,.5,lx,.68,-1.15,[.55,.44,.33]);
+    for(let k=0;k<4;k++)for(const y of [.76,1.41]){if(D.pots){const [x,z]=L(-1.2+k*.8,-1.15);const pot=new THREE.CylinderGeometry(.13,.1,.2,8);pot.translate(x,y+.04,z);vcol(pot,()=>[.22,.2,.18]);add("paint",pot);const lf=new THREE.SphereGeometry(.16,6,4);lf.translate(x,y+.25,z);vcol(lf,()=>[.36,.66,.28]);add("paint",lf)}
+      else{const sk=new THREE.CylinderGeometry(.16,.19,.32,8);const [x,z]=L(-1.2+k*.8,-1.15);sk.translate(x,y+.1,z);vcol(sk,()=>D.g[(k+2)%5].map(v=>v*.9+.08));add("paint",sk)}}
+    for(const sd of [-1,1]){bx("wood",.5,.42,.9,sd*2.25,.21,1.1,[.62,.46,.32]);for(let q=0;q<5;q++){const [x,z]=L(sd*2.25+(q%2-.5)*.22,.8+q*.14),fl=new THREE.SphereGeometry(.09,6,4);fl.translate(x,.5+(q%2)*.05,z);vcol(fl,()=>[[.95,.85,.2],[.9,.3,.4],[.95,.95,.95],[.75,.4,.85],[.98,.6,.2]][(q+i)%5]);add("paint",fl)}}
+    const [sx,sz]=L(0,1.8);SIGNS.push([D.c,f.n,sx,sz]);const [vx,vz]=L(0,-.4);VEND.push([vx,vz,ry+Math.PI,i]);COLL.push({x:f.x,z:f.z,r:1.9})});
+  // bancos virados para a fogueira
+  for(const a of [40,140,-40,-140]){const r=a*Math.PI/180,f={x:Math.cos(r)*5.4,z:Math.sin(r)*5.4},ry=Math.atan2(-f.x,-f.z),L=LT(f,ry),bx=(k,w,h,d,lx,y,lz,c)=>{const [x,z]=L(lx,lz);box(k,w,h,d,x,y,z,ry,c)};
+    bx("wood",2,.08,.5,0,.5,0,[.82,.68,.52]);bx("wood",2,.42,.06,0,.82,-.24,[.78,.64,.5]);for(const lx of [-.85,.85])bx("wood",.1,.5,.45,lx,.25,0,[.55,.44,.33]);COLL.push({x:f.x,z:f.z,r:.6})}
+  // postes de luz na entrada de cada caminho
+  for(const a of [9,65.5,99,132.5,189,-114.5,-70,-47.5]){const r=a*Math.PI/180,x=Math.cos(r)*13.9,z=Math.sin(r)*13.9;box("paint",.3,.22,.3,x,.11,z,0,[.16,.24,.18]);box("paint",.09,3.2,.09,x,1.6,z,0,[.16,.24,.18]);box("glow",.32,.42,.32,x,3.15,z,0,[1,.92,.72]);box("paint",.42,.06,.42,x,3.4,z,0,[.16,.24,.18]);COLL.push({x,z,r:.25})}
+  // portal da feira (entrada sul)
+  box("wood",.3,4.1,.3,-2,2.05,14.7,0,[.6,.46,.34]);box("wood",.3,4.1,.3,2,2.05,14.7,0,[.6,.46,.34]);box("wood",4.6,.32,.36,0,4.05,14.7,0,[.66,.5,.36]);COLL.push({x:-2,z:14.7,r:.3},{x:2,z:14.7,r:.3});
+  const glow=mat("v6glow",null,{vc:true,r:.4,em:0xffd27a,ei:1.3}),MM={plas,tile,wood,stone,cloth,paint,glow};for(const k in G){const m=new THREE.Mesh(merge(G[k]),MM[k]);m.castShadow=Q>0;m.receiveShadow=Q>0;scene.add(m)}
   // placas (sprites)
   const sign=(txt,x,y,z,w)=>{const t=tex("sign"+txt,256,64,(g,W,Hh)=>{g.fillStyle="rgba(60,40,20,.92)";g.fillRect(0,0,W,Hh);g.strokeStyle="#c9a874";g.lineWidth=5;g.strokeRect(3,3,W-6,Hh-6);g.fillStyle="#fff3d6";g.font="bold 34px Trebuchet MS";g.textAlign="center";g.textBaseline="middle";g.fillText(txt,W/2,Hh/2+2)});
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false}));s.scale.set(w,w/4,1);s.position.set(x,y,z);scene.add(s);return s};
-  sign("🧺 FEIRA",0,3.6,4,3.2);sign("🪣 Poço",W.x,3.1,W.z,2.2);sign("📻 Rádio",VILLAGE.radio.x,1.9,VILLAGE.radio.z,1.6);
+  for(const [c,n,x,z] of SIGNS){const col="rgb("+c.map(v=>v*255|0).join(",")+")",t=tex("stall"+n,256,72,(g,Ww,Hh)=>{g.fillStyle=col;g.fillRect(0,0,Ww,Hh);g.fillStyle="rgba(0,0,0,.18)";g.fillRect(0,Hh-10,Ww,10);g.strokeStyle="#fff3d6";g.lineWidth=5;g.strokeRect(4,4,Ww-8,Hh-8);g.fillStyle="#fff";g.font="bold 34px Trebuchet MS";g.textAlign="center";g.textBaseline="middle";g.fillText(n,Ww/2,Hh/2)});
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false}));sp.scale.set(2.6,.73,1);sp.position.set(x,3.25,z);scene.add(sp)}
+  sign("🧺 Feira da Comunidade",0,4.75,14.7,4.6);sign("🪣 Poço",W.x,3.1,W.z,2.2);
+  VILLAGE.vend=VEND.map(([x,z,ry,i])=>{const v=farmer({s:(i*3+1)%8,p:(i*2)%7,h:[0,2,3,1,0][i]});v.position.set(x,.14,z);v.rotation.y=ry;scene.add(v);return v});
+  {const L=NATS[BIO[me.bio].nat],PMt=plantMats();[28,73,107,152,-28,-73,-107,-152].forEach((a,k)=>{const r=a*Math.PI/180,x=Math.cos(r)*17.6,z=Math.sin(r)*17.6,sp=L[k%L.length],M=plantModel(sp),sc=(sp.h>12?.45:.8);
+    for(const part in M){if(part==="fruit")continue;const mt=PMt[part];if(mt)imPush("pz|"+sp.id+"|"+part,M[part],mt,x,0,z,k*1.7,sc,sc)}COLL.push({x,z,r:.6})});imCommit("pz|")}sign("📻 Rádio",VILLAGE.radio.x,1.9,VILLAGE.radio.z,1.6);
 }
 /* ---------- cercas e placas dos lotes ---------- */
 const SLOTSIGN=[];
@@ -1220,7 +1247,7 @@ let iaKind=null;
 /* ---------- guia até o sítio ---------- */
 let gArrow=null,gBeam=null;
 function guideTick(t){const home=slotPos(mySlot),inHome=Math.abs(P.x-home.x)<HALF+1&&Math.abs(P.z-home.z)<HALF+1;let tg=null,lbl="";
-  if(F.tut===0){tg=VILLAGE.ze;lbl="👴🏽 Seu Zé"}else if(TUT[F.tut]&&TUT[F.tut].ev==="vender"&&Object.values(F.inv).some(n=>n>0)){tg=VILLAGE.feira[1];lbl="🧺 Feira"}else if(!inHome){tg=home;lbl="🏡 Seu sítio"}
+  if(F.tut===0){tg=VILLAGE.ze;lbl="👴🏽 Seu Zé"}else if(TUT[F.tut]&&TUT[F.tut].ev==="vender"&&Object.values(F.inv).some(n=>n>0)){tg=VILLAGE.feira[0];lbl="🧺 Barraca da colheita"}else if(!inHome){tg=home;lbl="🏡 Seu sítio"}
   if(!gArrow){const s=new THREE.Shape();s.moveTo(0,-.9);s.lineTo(.45,-.1);s.lineTo(.16,-.1);s.lineTo(.16,.6);s.lineTo(-.16,.6);s.lineTo(-.16,-.1);s.lineTo(-.45,-.1);s.closePath();const g=new THREE.ShapeGeometry(s);g.rotateX(-Math.PI/2);
     gArrow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffcc33,transparent:true,opacity:.9,depthTest:false,toneMapped:false}));gArrow.renderOrder=9;scene.add(gArrow);
     gBeam=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,60,16,1,true),new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false}));gBeam.position.set(home.x,30,home.z);scene.add(gBeam)}
@@ -1230,11 +1257,11 @@ function guideTick(t){const home=slotPos(mySlot),inHome=Math.abs(P.x-home.x)<HAL
   $("guide").style.display="block";$("guide").textContent=lbl+": "+Math.round(d)+" m"}
 function goHome(){const p=slotPos(mySlot),gd=gateDir(mySlot);const r=F.size*CS/2+.6;P.x=p.x+gd.x*r;P.z=p.z+gd.z*r;P.yw=Math.atan2(gd.x,gd.z);cam.yaw=P.yw;toast("🏡 Você está no seu sítio! Os canteiros de terra escura no meio são seus (os de grama em volta você libera depois).")}
 function interactTick(){const d=(p)=>Math.hypot(P.x-p.x,P.z-p.z);iaKind=null;let txt="";
-  if(d(VILLAGE.ze)<3.2){iaKind="ze";txt="💬 Conversar com Seu Zé"}else if(VILLAGE.feira.some(f=>d(f)<4)){iaKind="feira";txt="🧺 Abrir a feira"}else if(d(VILLAGE.radio)<2.6){iaKind="radio";txt="📻 Ouvir a previsão"}
+  if(d(VILLAGE.ze)<3.2){iaKind="ze";txt="💬 Conversar com Seu Zé"}else if(VILLAGE.feira.some(f=>d(f)<3.6)){const fi=VILLAGE.feira.findIndex(f=>d(f)<3.6);iaKind="feira"+fi;txt=VILLAGE.feira[fi].lb}else if(d(VILLAGE.radio)<2.6){iaKind="radio";txt="📻 Ouvir a previsão"}
   else{const v=views[mySlot];if(v&&v.cisPos&&d(v.cisPos)<3&&F.up.cisterna){iaKind="cis";txt="🛢️ Encher regador na cisterna ("+Math.round(F.cis||0)+"%)"}else if(v&&v.springPos&&d(v.springPos)<3.2){iaKind="nasc";txt=(F.nasc||0)>20?"💧 Encher regador na nascente ("+Math.round(F.nasc)+"%)":"💧 Nascente fraca ("+Math.round(F.nasc||0)+"%): recupere o solo!"}}
   const wm=F.up.regador?25:10;if(d(VILLAGE.well)<2.8&&F.w<wm){F.w=wm;updHUD();snd.water();toast("💧 Regador cheio!")}
   $("ia").style.display=txt?"block":"none";$("ia").textContent=(MOB?"":"F: ")+txt;$("bTalk").style.display=txt?"flex":"none"}
-function interact(){if(iaKind==="ze")talkZe();else if(iaKind==="feira"){openShop("vender");lesson("sucessao")}else if(iaKind==="radio")openPrev();else if(iaKind==="nasc"){if((F.nasc||0)>20){F.w=F.up.regador?25:10;snd.water();updHUD();toast("💧 Água limpa da nascente!")}else{lesson("nascente",true)}}else if(iaKind==="cis"){const wm=F.up.regador?25:10,need=wm-F.w,take=Math.min(need,Math.floor((F.cis||0)/2));if(take<=0){toast("Cisterna vazia ou regador cheio");return}F.w+=take;F.cis-=take*2;snd.water();updHUD();save()}}
+function interact(){if(iaKind==="ze")talkZe();else if(typeof iaKind==="string"&&iaKind.startsWith("feira")){const f=VILLAGE.feira[+iaKind.slice(5)]||VILLAGE.feira[0];openShop(f.tab);lesson("sucessao")}else if(iaKind==="radio")openPrev();else if(iaKind==="nasc"){if((F.nasc||0)>20){F.w=F.up.regador?25:10;snd.water();updHUD();toast("💧 Água limpa da nascente!")}else{lesson("nascente",true)}}else if(iaKind==="cis"){const wm=F.up.regador?25:10,need=wm-F.w,take=Math.min(need,Math.floor((F.cis||0)/2));if(take<=0){toast("Cisterna vazia ou regador cheio");return}F.w+=take;F.cis-=take*2;snd.water();updHUD();save()}}
 /* ---------- movimento ---------- */
 function collide(x,z){for(const c of COLL){if(c.r!=null){const dx=x-c.x,dz=z-c.z,d=Math.hypot(dx,dz),r=c.r+.35;if(d<r&&d>0){x=c.x+dx/d*r;z=c.z+dz/d*r}}else if(x>c.x0-.35&&x<c.x1+.35&&z>c.z0-.35&&z<c.z1+.35){const l=x-(c.x0-.35),r=(c.x1+.35)-x,t=z-(c.z0-.35),b=(c.z1+.35)-z,m=Math.min(l,r,t,b);if(m===l)x=c.x0-.35;else if(m===r)x=c.x1+.35;else if(m===t)z=c.z0-.35;else z=c.z1+.35}}return [clamp(x,-80,80),clamp(z,-80,80)]}
 function movePlayer(dt){let ix=0,iz=0;if(!ovOpen()){if(K.KeyW||K.ArrowUp)iz-=1;if(K.KeyS||K.ArrowDown)iz+=1;if(K.KeyA||K.ArrowLeft)ix-=1;if(K.KeyD||K.ArrowRight)ix+=1;if(jx||jy){ix=jx;iz=jy}}
@@ -1678,11 +1705,11 @@ function riverTick(dt){if(!V.wG)return;const tw=riverTarget();V.rw+=(tw-V.rw)*Ma
   if(wCur.rain>.4&&rioBase()>.5&&Math.abs(P.z-RZ(P.x))<14&&!F.enc.co.mataciliar)lesson("mataciliar")}
 
 /* ---------------- festa: fogueira, bandeirinhas, quadrilha ---------------- */
-const FPOS={x:2.4,z:1.2};
+const FPOS={x:0,z:0};
 function festInit(){const stone=mat("v_stone"),wood=mat("v_wood"),sg=new THREE.Group();for(let i=0;i<9;i++){const a=i/9*6.28,s=new THREE.Mesh(new THREE.DodecahedronGeometry(.22,0),stone);s.position.set(FPOS.x+Math.cos(a)*.9,.12,FPOS.z+Math.sin(a)*.9);sg.add(s)}scene.add(sg);COLL.push({x:FPOS.x,z:FPOS.z,r:1.1});
   const g=new THREE.Group();V.fest=g;g.visible=false;scene.add(g);
   for(let i=0;i<6;i++){const lg=new THREE.Group();lg.position.set(FPOS.x,0,FPOS.z);lg.rotation.y=i*1.05;const l=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,1.5,6),wood);l.position.set(.28,.6,0);l.rotation.z=.45;lg.add(l);g.add(lg)}
-  const poles=[[-12,-4],[12,-4],[12,14],[-12,14]];for(const [x,z] of poles){const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,5,6),wood);p.position.set(x,2.5,z);g.add(p)}
+  const poles=[[-13,-10],[13,-10],[13,15.5],[-13,15.5]];for(const [x,z] of poles){const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,5,6),wood);p.position.set(x,2.5,z);g.add(p)}
   const pairs=[[0,1],[1,2],[2,3],[3,0],[0,2],[1,3]],COLS=[[.9,.15,.15],[.98,.8,.1],[.15,.4,.9],[.2,.7,.25],[.95,.5,.1],[.6,.25,.7]],lp=[],fp=[],fc=[];
   for(const [a,b] of pairs){const A=poles[a],B=poles[b],N=26;let prev=null;for(let k=0;k<=N;k++){const t=k/N,x=lerp(A[0],B[0],t),z=lerp(A[1],B[1],t),y=4.8-Math.sin(Math.PI*t)*1.1;if(prev)lp.push(...prev,x,y,z);prev=[x,y,z];
       if(k>0&&k<N){const dx=(B[0]-A[0])/N*.45,dz=(B[1]-A[1])/N*.45,c=COLS[(k+a)%COLS.length];fp.push(x,y,z,x+dx,y,z+dz,x+dx/2,y-.38,z+dz/2);for(let q=0;q<3;q++)fc.push(...c)}}}
@@ -2497,6 +2524,91 @@ const oT2=tick2;tick2=function(dt,t){oT2(dt,t);if(!running||!F||!scene)return;tr
     if(S&&S.st==="run"&&amLeader()){if(c&&c.left<=0)W5.base.child("state").update({st:"end",final:{red:(W5.score||{}).red||0,blue:(W5.score||{}).blue||0}});
       else if(S.mode==="brigada"&&c&&c.pre<=0&&t-(W5.fireT||0)>9000){W5.fireT=t;const n=W5.spotsV.length,k=Math.floor(Math.random()*n);if(n&&!(W5.spots[k]&&W5.spots[k].f===1))W5.base.child("m/"+S.mid+"/spots/"+k).set({f:1})}}}}
   catch(e){if(!W5.err){W5.err=1;console.error("v5",e)}}};
+})();
+
+</script>
+<script>
+/* =====================================================================
+   SÍTIO AGROFLORESTA — NOVIDADES v6: glossário falado (leitura em voz alta)
+   Usa a voz do próprio aparelho (Web Speech API): sem servidor, funciona offline.
+   ===================================================================== */
+(function(){
+"use strict";
+const SS=window.speechSynthesis,UT=window.SpeechSynthesisUtterance;
+const CFG=Object.assign({auto:false,rate:1,voice:""},LS.get("agro_tts",{}));
+const saveCfg=()=>LS.set("agro_tts",CFG);
+let voices=[],curBtn=null,queueId=0;
+function loadV(){try{voices=SS?SS.getVoices():[]}catch(e){voices=[]}}
+if(SS){loadV();SS.onvoiceschanged=()=>{loadV();fillVoices()}}
+const ptVoices=()=>{const br=voices.filter(v=>/^pt[-_]BR/i.test(v.lang)),pt=voices.filter(v=>/^pt/i.test(v.lang));return br.length?br.concat(pt.filter(v=>!br.includes(v))):pt};
+function pickVoice(){const L=ptVoices();return L.find(v=>v.name===CFG.voice)||L.find(v=>/google|natural|online|francisca|luciana|thalita/i.test(v.name))||L[0]||null}
+function clean(t){return String(t||"").replace(/<[^>]+>/g," ").replace(/\p{Extended_Pictographic}|️|‍/gu,"").replace(/°C/g," graus").replace(/R\$\s?/g," reais ").replace(/CO₂/g,"gás carbônico")
+  .replace(/(\d+)%/g,"$1 por cento").replace(/×/g," vezes ").replace(/[▾▸·•]/g,", ").replace(/\s+/g," ").trim()}
+function chunks(t){const out=[];let cur="";for(const s of (t.match(/[^.!?:;]+[.!?:;]*/g)||[t]).map(x=>x.trim()).filter(Boolean)){if((cur+" "+s).length>180&&cur){out.push(cur);cur=s}else cur=cur?cur+" "+s:s}if(cur)out.push(cur);return out}
+function mark(b){if(curBtn&&curBtn!==b){curBtn.textContent=curBtn.dataset.lbl||"🔊";curBtn.classList.remove("v6on")}curBtn=b;if(b){b.dataset.lbl=b.dataset.lbl||b.textContent;b.textContent="⏹ Parar";b.classList.add("v6on")}}
+function stop(){if(SS)SS.cancel();queueId++;mark(null)}
+function speak(text,who,btn){if(!SS||!UT){toast("Este navegador não tem leitura em voz alta 😕");return}
+  const txt=clean(text);if(!txt)return;SS.cancel();const id=++queueId,parts=chunks(txt),v=pickVoice();
+  if(!v&&!speak.warned){speak.warned=true;toast("🔊 Não achei voz em português no aparelho: vai usar a voz padrão. Dá para instalar nas configurações de idioma.")}
+  mark(btn||null);parts.forEach((p,i)=>{const u=new UT(p);u.lang="pt-BR";if(v)u.voice=v;u.rate=clamp(CFG.rate*(who==="ze"?.92:1),.5,1.8);u.pitch=who==="ze"?.72:1.05;u.volume=1;
+    if(i===parts.length-1)u.onend=u.onerror=()=>{if(id===queueId)mark(null)};SS.speak(u)});
+  if(SS.paused)SS.resume()}
+const say=(text,who)=>e=>{if(e){e.preventDefault();e.stopPropagation()}const b=e&&e.currentTarget;if(b&&b.classList.contains("v6on")){stop();return}speak(typeof text==="function"?text():text,who,b)};
+
+/* ---------------- estilos ---------------- */
+const css=document.createElement("style");css.textContent=`
+.v6b{border:1px solid var(--line);background:rgba(255,255,255,.1);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:800;cursor:pointer;pointer-events:auto;align-self:flex-start}
+.card .v6b{margin-top:auto;background:rgba(91,182,240,.18);border-color:rgba(91,182,240,.55)}.v6b.v6on{background:rgba(242,193,75,.35);border-color:var(--gold)}
+#tip .v6b{margin-top:5px}.qz .v6b{margin:0 0 6px}body.mob .v6b{font-size:10.5px;padding:2px 6px}`;
+document.head.appendChild(css);
+const mkBtn=(lbl,fn)=>{const b=document.createElement("button");b.className="v6b";b.type="button";b.textContent=lbl||"🔊 Ouvir";b.dataset.lbl=b.textContent;b.addEventListener("pointerdown",e=>e.stopPropagation());b.onclick=fn;return b};
+
+/* ---------------- enciclopédia: 🔊 em cada carta ---------------- */
+function decorate(root,sel){if(!root)return;root.querySelectorAll(sel).forEach(c=>{if(c.classList.contains("lock")||c.querySelector(".v6b"))return;if(c.querySelector("button"))return;
+  const txt=c.innerText;if(!txt||txt.length<12)return;c.appendChild(mkBtn("🔊 Ouvir",say(()=>c.innerText.replace(/🔊 Ouvir|⏹ Parar/g,""))))})}
+const oEnc=openEnc;openEnc=function(tab){oEnc(tab);try{decorate($("encG"),".card");const T=$("encT");if(T&&!T.querySelector(".v6b")){const b=mkBtn("🔊 Ler todas desta aba",say(()=>[...$("encG").querySelectorAll(".card:not(.lock)")].map(c=>c.innerText.replace(/🔊 Ouvir|⏹ Parar/g,"")).join(". ")));b.style.marginLeft="auto";T.appendChild(b)}}catch(e){}};
+$("bEnc").onclick=()=>openEnc();
+
+/* ---------------- dicas e cartas novas ---------------- */
+const tipBtn=mkBtn("🔊 Ouvir",say(()=>$("tipT").textContent+". "+$("tipP").textContent));$("tip").querySelector("div").appendChild(tipBtn);
+const oTip=tip;tip=function(i,t,p,ms){oTip(i,t,p,CFG.auto?Math.max(ms||6000,(String(t).length+String(p).length)*75):ms);mark(null);if(CFG.auto)speak(t+". "+p,/Seu Zé/.test(t)?"ze":"",tipBtn)};
+
+/* ---------------- Seu Zé ---------------- */
+const zeBtn=mkBtn("🔊 Ouvir o Seu Zé",say(()=>$("dlgP").innerText,"ze"));$("dlg").querySelector(".row").appendChild(zeBtn);
+new MutationObserver(()=>{if(CFG.auto&&$("dlg").style.display==="flex")speak($("dlgP").innerText,"ze",zeBtn)}).observe($("dlgP"),{childList:true,characterData:true,subtree:true});
+$("dlg").querySelector("[data-close]").addEventListener("click",stop);
+
+/* ---------------- quiz, cartas da escola e histórias ---------------- */
+new MutationObserver(()=>{const q=$("shopB").querySelector(".qz");if(q&&!q.querySelector(".v6b")){const p=q.querySelector("p");if(!p)return;
+  const b=mkBtn("🔊 Ouvir a pergunta",say(()=>p.innerText+". As opções são: "+[...q.querySelectorAll("button[data-q]")].map((x,i)=>(i+1)+": "+x.innerText).join(". ")));p.after(b);
+  if(CFG.auto)speak(p.innerText+". As opções são: "+[...q.querySelectorAll("button[data-q]")].map((x,i)=>(i+1)+": "+x.innerText).join(". "),"",b)}}).observe($("shopB"),{childList:true});
+const v3B=$("v3B");if(v3B)new MutationObserver(()=>{decorate(v3B,".card");v3B.querySelectorAll(".qz").forEach(q=>{const p=q.querySelector("p");if(p&&!q.querySelector(".v6b"))p.after(mkBtn("🔊 Ouvir a pergunta",say(()=>p.innerText+". Opções: "+[...q.querySelectorAll("button")].filter(x=>!x.classList.contains("v6b")).map((x,i)=>(i+1)+": "+x.innerText).join(". "))))})}).observe(v3B,{childList:true});
+/* ---------------- missões: ouvir o objetivo atual ---------------- */
+const misB=mkBtn("🔊",say(()=>[...$("mis").querySelectorAll(".tut,.m span")].filter(x=>x.offsetParent!==null).map(x=>x.innerText).join(". ")||"Sem objetivos agora."));misB.title="Ouvir os objetivos";misB.style.marginLeft="6px";
+$("misH").querySelector("span").appendChild(misB);
+
+/* ---------------- fechar janelas para a fala ---------------- */
+document.addEventListener("click",e=>{const x=e.target.closest&&e.target.closest("[data-close],.x");if(x)stop()},true);
+
+/* ---------------- configurações no menu ---------------- */
+const box=$("menu").querySelector(".box"),rows=box.querySelectorAll(".row");
+const wrap=document.createElement("div");wrap.innerHTML=`<label>🔊 Leitura em voz alta</label>
+  <label class="v6chk" style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt)"><input type="checkbox" id="v6auto" style="width:18px;height:18px" ${CFG.auto?"checked":""}> Ler sozinho as dicas, as cartas novas, o Seu Zé e o quiz</label>
+  <label>Velocidade da fala: <span id="v6rv">${CFG.rate.toFixed(1)}</span></label><input type="range" id="v6rate" min="0.6" max="1.6" step="0.1" value="${CFG.rate}" style="width:100%">
+  <label>Voz</label><select id="v6voice"></select><div class="row"><button class="mb" id="v6test">🔊 Testar a voz</button></div>
+  <div id="v6none" style="font-size:12px;color:var(--mut)"></div>`;
+box.insertBefore(wrap,rows[rows.length-1]);
+function fillVoices(){const s=$("v6voice");if(!s)return;const L=ptVoices();s.innerHTML=L.length?L.map(v=>`<option value="${esc(v.name)}" ${v.name===(pickVoice()||{}).name?"selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join(""):`<option value="">Voz padrão do aparelho</option>`;
+  $("v6none").textContent=!SS?"Este navegador não tem leitura em voz alta.":L.length?"":"Não encontrei voz em português. No celular: Configurações → Idioma → Saída de texto para voz. No computador: instale o pacote de idioma Português (Brasil)."}
+fillVoices();
+$("v6auto").onchange=e=>{CFG.auto=e.target.checked;saveCfg();if(CFG.auto)speak("Leitura em voz alta ligada. Vou ler as dicas, as cartas novas e o que o Seu Zé falar.")};
+$("v6rate").oninput=e=>{CFG.rate=+e.target.value;$("v6rv").textContent=CFG.rate.toFixed(1);saveCfg()};
+$("v6voice").onchange=e=>{CFG.voice=e.target.value;saveCfg()};
+$("v6test").onclick=say("Olá! Eu sou o Seu Zé. Bem-vindo ao Sítio Agrofloresta. Vamos cuidar da terra juntos?","ze");
+const lobbyBox=document.querySelector("#lobby .lc > .box");
+if(lobbyBox){const l=document.createElement("label");l.className="v6chk";l.style.cssText="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt);margin-top:8px";
+  l.innerHTML=`<input type="checkbox" style="width:18px;height:18px" ${CFG.auto?"checked":""}> 🔊 Ler os textos em voz alta (bom para quem está aprendendo a ler)`;
+  const go=$("go");go.parentNode.insertBefore(l,go);l.querySelector("input").onchange=e=>{CFG.auto=e.target.checked;saveCfg();$("v6auto").checked=CFG.auto}}
 })();
 
 </script>
